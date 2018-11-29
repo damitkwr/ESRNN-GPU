@@ -1,3 +1,5 @@
+from torch.utils.data import Dataset, DataLoader
+
 
 q_config = {
     'variable': "Quarterly",
@@ -6,7 +8,7 @@ q_config = {
     'training_percentile': 45,
     'dilations': ((1, 2), (4, 8)),
     'use_residual_lstm': False,
-    'add_nl_layer': False
+    'add_nl_layer': False,
     'initial_learning_rate': 1e-3,
     'learning_rates': ((10, 1e-4)),
     'per_series_lr_multip': 1,
@@ -22,3 +24,8 @@ q_config['input_size_i'] = q_config['input_size']
 q_config['output_size_i'] = q_config['output_size']
 q_config['min_series_length'] = q_config['input_size_i'] + q_config['output_size_i'] + q_config['min_inp_seq_len'] + 2
 q_config['max_series_length'] = 40 * q_config['seasonality'] + q_config['min_series_length']
+
+class SeriesDataset(Dataset):
+    def __
+
+
