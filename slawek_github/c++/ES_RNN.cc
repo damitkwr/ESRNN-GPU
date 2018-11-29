@@ -650,7 +650,7 @@ int main(int argc, char** argv) {
           input1_ex= cdiv(input1_ex, levels_exVect[i]); // DIM INPUT_SIZE // NORMALIZATION
           joinedInput_ex.emplace_back(noise(squash(input1_ex), NOISE_STD)); // NORMALIZATION + GAUSSIAN noise
           joinedInput_ex.emplace_back(input(cg, { NUM_OF_CATEGORIES }, m4Obj.categories_vect)); // DIM NUM_OF_CATEGORIES
-          Expression input_ex = concatenate(joinedInput_ex); // STRING OF LEN INPUT_SIZE
+          Expression input_ex = concatenate(joinedInput_ex); // BATCH OF LEN INPUT_SIZE
 
 
 //        SEND IT THORUGH THE RNN
@@ -691,7 +691,7 @@ int main(int argc, char** argv) {
 
           Expression loss_ex=pinBallLoss(out_ex, labels_ex);
           if (i>=INPUT_SIZE_I+MIN_INP_SEQ_LEN)
-            losses.push_back(loss_ex);  
+            losses.push_back(loss_ex);
         }
 
 //        END ROLLING WINDOW
