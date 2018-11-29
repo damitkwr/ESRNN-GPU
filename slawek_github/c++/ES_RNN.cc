@@ -544,7 +544,6 @@ int main(int argc, char** argv) {
       historyOfAdditionalParams_map[series] = new array<AdditionalParamsF, NUM_OF_TRAIN_EPOCHS>();
     }
 
-
 //    BEGIN TRAINING THE EPOCHS
 
     for (int iEpoch=0; iEpoch<NUM_OF_TRAIN_EPOCHS; iEpoch++) {
@@ -587,27 +586,34 @@ int main(int argc, char** argv) {
 		    Expression sSm_ex = logistic(parameter(cg, additionalParams.sSm)); //seasonality smoothing
 
 			  vector<Expression> season_exVect;//vector, because we do not know how long the series is
+//			  PRIME THE INITIAL SEASONALITY
 			  for (int iseas=0; iseas<SEASONALITY; iseas++){
 			    Expression seas=exp(parameter(cg, additionalParams.initSeasonality[iseas]));
 			    //so, when additionalParams_map[series].initSeasonality[iseas]==0 => seas==1
 			    season_exVect.push_back(seas);//Expression is a simple struct, without any storage management, so the auto copy constructor works OK.
 			  }
+//			  FINISH THE SEASONALITY
 			  season_exVect.push_back(season_exVect[0]);
 
 			  vector<Expression> logDiffOfLevels_vect;
         vector<Expression> levels_exVect;
-			  Expression lev=cdiv(input(cg, m4Obj.vals[0]), season_exVect[0]);
+
+//        SEASONALLY ADJUSTED LEVEL
+			  Expression lev=cdiv(input(cg, m4Obj.vals[0]), season_exVect[0]); // DIVIDE BY SEASONALITY
 			  levels_exVect.push_back(lev);
         for (int i=1; i<m4Obj.vals.size();i++) {  //Exponential Smoothing-style deseasonalization and smoothing
 			    Expression newLevel_ex=m4Obj.vals[i]*cdiv(levSm_ex,season_exVect[i]) + (1-levSm_ex)*levels_exVect[i-1];
 			    levels_exVect.push_back(newLevel_ex);
+
 			    Expression diff_ex=log(cdiv(newLevel_ex,levels_exVect[i-1]));//penalty for wiggliness of level
 			    logDiffOfLevels_vect.push_back(diff_ex);
 
 			    Expression newSeason_ex=m4Obj.vals[i]*cdiv(sSm_ex,newLevel_ex) + (1-sSm_ex)*season_exVect[i];
 			    season_exVect.push_back(newSeason_ex);
         }
-         
+
+//        STORE THE SQUARED DIFFERENCE BETWEEN LEVELS
+
         Expression levelVarLoss_ex;
         if (LEVEL_VARIABILITY_PENALTY > 0) {
           vector<Expression> levelVarLoss_v;
@@ -618,30 +624,36 @@ int main(int argc, char** argv) {
           levelVarLoss_ex = average(levelVarLoss_v);
         }
 
-			  //if prediction horizon is larger than seasonality, so we need to repeat some of the seasonality factors
-			  if (OUTPUT_SIZE_I>SEASONALITY) {
-			    unsigned long startSeasonalityIndx=season_exVect.size()-SEASONALITY;
-			    for (int i=0;i<(OUTPUT_SIZE_I-SEASONALITY);i++)
-			      season_exVect.push_back(season_exVect[startSeasonalityIndx+i]);
-			  }
+          //if prediction horizon is larger than seasonality, so we need to repeat some of the seasonality factors
+          // NEED TO LENGTHEN THE SEASONALITY VALUES TO MAKE A PREDICTION
+          if (OUTPUT_SIZE_I>SEASONALITY) {
+            unsigned long startSeasonalityIndx=season_exVect.size()-SEASONALITY;
+            for (int i=0;i<(OUTPUT_SIZE_I-SEASONALITY);i++)
+              season_exVect.push_back(season_exVect[startSeasonalityIndx+i]);
+          }
         vector<Expression> losses;
+
+//        START ROLLING WINDOW
+
         for (int i=INPUT_SIZE_I-1; i<(m4Obj.n- OUTPUT_SIZE_I); i++) { 
-			    vector<Expression>::const_iterator firstE = season_exVect.begin() +i+1-INPUT_SIZE_I;
-			    vector<Expression>::const_iterator pastLastE = season_exVect.begin() +i+1; //not including the last one
-			    vector<Expression> inputSeasonality_exVect(firstE, pastLastE);  //[first,pastLast)
-			    Expression inputSeasonality_ex=concatenate(inputSeasonality_exVect);
+            vector<Expression>::const_iterator firstE = season_exVect.begin() +i+1-INPUT_SIZE_I;
+            vector<Expression>::const_iterator pastLastE = season_exVect.begin() +i+1; //not including the last one
+            vector<Expression> inputSeasonality_exVect(firstE, pastLastE);  //[first,pastLast)
+            Expression inputSeasonality_ex=concatenate(inputSeasonality_exVect);
 
           vector<float>::const_iterator first = m4Obj.vals.begin() +i+1-INPUT_SIZE_I;
           vector<float>::const_iterator pastLast = m4Obj.vals.begin() +i+1; //not including the last one
           vector<float> input_vect(first, pastLast); //[first,pastLast)
-          Expression input0_ex=input(cg,{INPUT_SIZE},input_vect);
-			    Expression input1_ex=cdiv(input0_ex,inputSeasonality_ex); //deseasonalization
-          vector<Expression> joinedInput_ex;
-          input1_ex= cdiv(input1_ex, levels_exVect[i]);
-          joinedInput_ex.emplace_back(noise(squash(input1_ex), NOISE_STD)); //normalization+noise
-          joinedInput_ex.emplace_back(input(cg, { NUM_OF_CATEGORIES }, m4Obj.categories_vect));
-          Expression input_ex = concatenate(joinedInput_ex);
+          Expression input0_ex=input(cg,{INPUT_SIZE},input_vect); // DIM INPUT_SIZE
+		  Expression input1_ex=cdiv(input0_ex,inputSeasonality_ex); // DIM INPUT_SIZE // deseasonalization
+          vector<Expression> joinedInput_ex; // EMPTY
+          input1_ex= cdiv(input1_ex, levels_exVect[i]); // DIM INPUT_SIZE // NORMALIZATION
+          joinedInput_ex.emplace_back(noise(squash(input1_ex), NOISE_STD)); // NORMALIZATION + GAUSSIAN noise
+          joinedInput_ex.emplace_back(input(cg, { NUM_OF_CATEGORIES }, m4Obj.categories_vect)); // DIM NUM_OF_CATEGORIES
+          Expression input_ex = concatenate(joinedInput_ex); // STRING OF LEN INPUT_SIZE
 
+
+//        SEND IT THORUGH THE RNN
           Expression rnn_ex;
           try {
             rnn_ex = rNNStack[0].add_input(input_ex);
@@ -652,6 +664,8 @@ int main(int argc, char** argv) {
             cerr << e.what() << endl;
             cerr <<as_vector(input_ex.value())<<endl;
           }
+
+//          SEND IT THROUGH THE SCORING LAYERS
           Expression out_ex;
           if (ADD_NL_LAYER) {
             out_ex=MLPW_ex*rnn_ex+MLPB_ex;
@@ -665,21 +679,25 @@ int main(int argc, char** argv) {
 			    vector<Expression> outputSeasonality_exVect(firstE, pastLastE);  //[first,pastLast)
 			    Expression outputSeasonality_ex=concatenate(outputSeasonality_exVect);
 
+//            BUILD OUTPUT WINDOW
+
           first = m4Obj.vals.begin() +i+1;
           pastLast = m4Obj.vals.begin() +i+1+OUTPUT_SIZE_I;
           vector<float> labels_vect(first, pastLast);  //[first,pastLast)
-          Expression labels0_ex=input(cg,{OUTPUT_SIZE},labels_vect);
-			    Expression labels1_ex=cdiv(labels0_ex,outputSeasonality_ex); //deseasonalization
-          labels1_ex= cdiv(labels1_ex, levels_exVect[i]);//normalization
+          Expression labels0_ex=input(cg,{OUTPUT_SIZE},labels_vect); // DIM OUTPUT_SIZE
+		  Expression labels1_ex=cdiv(labels0_ex,outputSeasonality_ex); // DIM OUTPUT_SIZE //deseasonalization
+          labels1_ex= cdiv(labels1_ex, levels_exVect[i]); // DIM OUTPUT_SIZE //normalization
 			    Expression labels_ex=squash(labels1_ex);
 
           Expression loss_ex=pinBallLoss(out_ex, labels_ex);
           if (i>=INPUT_SIZE_I+MIN_INP_SEQ_LEN)
             losses.push_back(loss_ex);  
         }
-        
+
+//        END ROLLING WINDOW
+
         Expression forecLoss_ex= average(losses);
-			  Expression loss_exp = forecLoss_ex;
+        Expression loss_exp = forecLoss_ex;
 
         float levVarLoss=0;
         if (LEVEL_VARIABILITY_PENALTY > 0) {
@@ -703,12 +721,16 @@ int main(int argc, char** argv) {
           stateLosses.push_back(cStateLoss);
           loss_exp = loss_exp + cStateLossP_ex;
         }
-          
+
+//        ADD LOSSES TO EPOCH METRICS
+
         float loss = as_scalar(cg.forward(loss_exp));
         trainingLosses.push_back(loss);//losses of all series in one epoch
 
         float forecastLoss = loss - levVarLoss - cStateLoss;
         forecLosses.push_back(forecastLoss);
+
+//        BACK PROP
 
         cg.backward(loss_exp);
         try {
