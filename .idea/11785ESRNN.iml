@@ -2,7 +2,7 @@
 <module type="CPP_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="jdk" jdkName="Python 3.6 (tensorflow18)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.6 (Listen-Attend-and-Spell-Pytorch)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
