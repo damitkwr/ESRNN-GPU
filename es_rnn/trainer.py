@@ -41,5 +41,6 @@ class ESRNNTrainer(nn.Module):
         output = self.model(train, val, test, info_cat, idx)
         loss = self.criterion(output, )
         loss.backward()
+        nn.utils.clip_grad_norm_(self.model.parameters(), self.config['gradient_clipping'])
         self.optimizer.step()
         return float(loss)

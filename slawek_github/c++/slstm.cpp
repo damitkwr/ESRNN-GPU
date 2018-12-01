@@ -34,8 +34,14 @@ namespace dynet {
     unsigned input_dim,
     unsigned hidden_dim,
     ParameterCollection& model,
-    bool ln_lstm, float forget_bias) : dilations(dilations), layers(unsigned(dilations.size())),
-      input_dim(input_dim), hid(hidden_dim), ln_lstm(ln_lstm), forget_bias(forget_bias), dropout_masks_valid(false) {
+    bool ln_lstm, float forget_bias) :
+    dilations(dilations),
+    layers(unsigned(dilations.size())),
+    input_dim(input_dim),
+    hid(hidden_dim),
+    ln_lstm(ln_lstm),
+    forget_bias(forget_bias),
+    dropout_masks_valid(false) {
     unsigned layer_input_dim = input_dim;
     local_model = model.add_subcollection("ResidualDilated-lstm-builder");
     for (unsigned i = 0; i < layers; ++i) {
