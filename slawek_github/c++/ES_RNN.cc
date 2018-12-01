@@ -583,19 +583,19 @@ int main(int argc, char** argv) {
 //        ENSURE IT IS BETWEEN ZERO AND ONE
 
         Expression levSm_ex = logistic(parameter(cg, additionalParams.levSm));  //level smoothing
-		    Expression sSm_ex = logistic(parameter(cg, additionalParams.sSm)); //seasonality smoothing
+		Expression sSm_ex = logistic(parameter(cg, additionalParams.sSm)); //seasonality smoothing
 
-			  vector<Expression> season_exVect;//vector, because we do not know how long the series is
+          vector<Expression> season_exVect;//vector, because we do not know how long the series is
 //			  PRIME THE INITIAL SEASONALITY
-			  for (int iseas=0; iseas<SEASONALITY; iseas++){
-			    Expression seas=exp(parameter(cg, additionalParams.initSeasonality[iseas]));
-			    //so, when additionalParams_map[series].initSeasonality[iseas]==0 => seas==1
-			    season_exVect.push_back(seas);//Expression is a simple struct, without any storage management, so the auto copy constructor works OK.
-			  }
+          for (int iseas=0; iseas<SEASONALITY; iseas++){
+            Expression seas=exp(parameter(cg, additionalParams.initSeasonality[iseas]));
+            //so, when additionalParams_map[series].initSeasonality[iseas]==0 => seas==1
+            season_exVect.push_back(seas);//Expression is a simple struct, without any storage management, so the auto copy constructor works OK.
+          }
 //			  FINISH THE SEASONALITY
-			  season_exVect.push_back(season_exVect[0]);
+          season_exVect.push_back(season_exVect[0]);
 
-			  vector<Expression> logDiffOfLevels_vect;
+          vector<Expression> logDiffOfLevels_vect;
         vector<Expression> levels_exVect;
 
 //        SEASONALLY ADJUSTED LEVEL
@@ -639,7 +639,7 @@ int main(int argc, char** argv) {
             vector<Expression>::const_iterator firstE = season_exVect.begin() +i+1-INPUT_SIZE_I;
             vector<Expression>::const_iterator pastLastE = season_exVect.begin() +i+1; //not including the last one
             vector<Expression> inputSeasonality_exVect(firstE, pastLastE);  //[first,pastLast)
-            Expression inputSeasonality_ex=concatenate(inputSeasonality_exVect);
+            Expression inputSeasonality_ex=concatenate(inputSeasonality_exVect); //BATCH
 
           vector<float>::const_iterator first = m4Obj.vals.begin() +i+1-INPUT_SIZE_I;
           vector<float>::const_iterator pastLast = m4Obj.vals.begin() +i+1; //not including the last one

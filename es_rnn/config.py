@@ -5,7 +5,6 @@ q_config = {
     #     RUNTIME PARAMETERS
     'prod': False,
     'device': ("cuda" if torch.cuda.is_available() else "cpu"),
-
     'lback': False,
 
     #     MODEL STRUCTURE PARAMETER
@@ -61,7 +60,7 @@ q_config['training_tau']: q_config['training_percentile'] / 100
 q_config['attention_hsize']: q_config['state_hsize']
 
 if not q_config['prod']:
-    q_config['batch_size'] = 2
+    q_config['batch_size'] = 10
     q_config['max_num_of_series'] = 40
 
 
