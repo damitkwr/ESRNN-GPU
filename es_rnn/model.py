@@ -47,39 +47,51 @@ class ESRNN(nn.Module):
         seasonalities.append(torch.exp(init_seasonalities[:, 0]))
 
         if testing:
-            train = [train[i] + val[i] for i in range(train)]
+            train = torch.cat((train, val), dim=1)
 
-        train_lens = [len(i) for i in train]
-        train_padded = nn.utils.rnn.pad_sequence(train).float()
+        train = train.float()
 
         levs = []
         log_diff_of_levels = []
-        levs.append(train_padded[0, :] / seasonalities[0])
-        for i in range(1, train_padded.shape[0]):
+        levs.append(train[:, 0] / seasonalities[0])
+        for i in range(1, train.shape[1]):
             # CALCULATE LEVEL FOR CURRENT TIMESTEP TO NORMALIZE RNN
-            new_lev = lev_sms * (train_padded[i, :] / seasonalities[i]) + (1 - lev_sms) * levs[i - 1]
+            new_lev = lev_sms * (train[:, i] / seasonalities[i]) + (1 - lev_sms) * levs[i - 1]
             levs.append(new_lev)
 
             # STORE DIFFERENCE TO PENALIZE LATER
             log_diff_of_levels.append(torch.log(new_lev / levs[i - 1]))
 
             # CALCULATE SEASONALITY TO DESEASONALIZE THE DATA FOR RNN
-            seasonalities.append(seas_sms * (train_padded[i, :] / new_lev) + (1 - seas_sms) * seasonalities[i])
+            seasonalities.append(seas_sms * (train[:, i] / new_lev) + (1 - seas_sms) * seasonalities[i])
 
-        seasonalities_stacked = torch.stack(seasonalities)
+        seasonalities_stacked = torch.stack(seasonalities).transpose(1, 0)
+        levs_stacked = torch.stack(levs).transpose(1, 0)
 
         if self.config['level_variability_penalty'] > 0:
             sq_log_diff = torch.stack([(log_diff_of_levels[i] - log_diff_of_levels[i - 1]) ** 2 for i in range(1, len(log_diff_of_levels))])
             mean_sq_log_diff = torch.mean(sq_log_diff, dim=1)
 
         if self.config['output_size'] > self.config['seasonality']:
-            seasonalities_seqs = unpad_sequence(seasonalities_stacked, train_lens)
-            for i in range(seasonalities_seqs):
-                start_seasonality_ext = seasonalities_seqs[i].shape[0] - self.config['seasonality']
-                seasonalities_seqs[i] = torch.cat((seasonalities_seqs[i], seasonalities_seqs[start_seasonality_ext:]), 0)
+            start_seasonality_ext = seasonalities_stacked.shape[1] - self.config['seasonality']
+            seasonalities_stacked = torch.cat((seasonalities_stacked, seasonalities_stacked[:, start_seasonality_ext:]), dim=1)
 
 
 
+        window_input = []
+        for i in range(self.config['input_size'] - 1, train.shape[1] - self.config['output_size']):
+            input_window_start = i + 1 - self.config['input_size']
+            input_window_end = i + 1
+
+            train_deseas_window = train[:, input_window_start:input_window_end] / seasonalities_stacked[:, input_window_start:input_window_end]
+            train_deseas_norm_window = (train_deseas_window / levs_stacked[:, i].unsqueeze(1))
+            train_deseas_norm_cat_window = torch.cat((train_deseas_norm_window, info_cat), dim=1)
+            window_input.append(train_deseas_norm_cat_window)
+
+            output_window_start = i + 1
+            output_window_end = i + 1 + self.config['output_size']
+
+        input_batch = torch.cat([i.unsqueeze(0) for i in window_input], dim=0)
 
         print('done')
 

@@ -6,6 +6,7 @@ q_config = {
     'prod': False,
     'device': ("cuda" if torch.cuda.is_available() else "cpu"),
     'lback': False,
+    'chop_val': 72,
 
     #     MODEL STRUCTURE PARAMETER
 
