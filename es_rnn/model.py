@@ -76,9 +76,8 @@ class ESRNN(nn.Module):
             start_seasonality_ext = seasonalities_stacked.shape[1] - self.config['seasonality']
             seasonalities_stacked = torch.cat((seasonalities_stacked, seasonalities_stacked[:, start_seasonality_ext:]), dim=1)
 
-
-
         window_input = []
+        window_output = []
         for i in range(self.config['input_size'] - 1, train.shape[1] - self.config['output_size']):
             input_window_start = i + 1 - self.config['input_size']
             input_window_end = i + 1
@@ -86,18 +85,18 @@ class ESRNN(nn.Module):
             train_deseas_window = train[:, input_window_start:input_window_end] / seasonalities_stacked[:, input_window_start:input_window_end]
             train_deseas_norm_window = (train_deseas_window / levs_stacked[:, i].unsqueeze(1))
             train_deseas_norm_cat_window = torch.cat((train_deseas_norm_window, info_cat), dim=1)
-            window_input.append(train_deseas_norm_cat_window)
+            window_input.append(copy.copy(train_deseas_norm_cat_window))
 
             output_window_start = i + 1
             output_window_end = i + 1 + self.config['output_size']
 
+            train_deseas_window = train[:, output_window_start:output_window_end] / seasonalities_stacked[:, output_window_start:output_window_end]
+            train_deseas_norm_window = (train_deseas_window / levs_stacked[:, i].unsqueeze(1))
+            window_output.append(copy.copy(train_deseas_norm_window))
+
         input_batch = torch.cat([i.unsqueeze(0) for i in window_input], dim=0)
+        output_batch = torch.cat([i.unsqueeze(0) for i in window_output], dim=0)
 
-        print('done')
-
-#         WINDOWING LOOP
-#         TIME LOOP
-#         RNN STUFF HERE
 
 #         if add_nl_layer:
 #             out = self.nl_layer(out)
