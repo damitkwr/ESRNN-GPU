@@ -34,6 +34,7 @@ dataloader = DataLoader(dataset, batch_size=q_config['batch_size'], shuffle=True
 run_id = str(int(time.time()))
 model = ESRNN(num_series=len(dataset), config=q_config)
 tr = ESRNNTrainer(model, dataloader, run_id, q_config)
-tr.train()
+for i in range(15):
+    tr.train()
 # train_batch, val_batch, test_batch, info_cat_batch, idxs_batch = iter(dataloader).next()
 # model.forward(train_batch, val_batch, test_batch, info_cat_batch, idxs_batch, testing=True)
