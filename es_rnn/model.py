@@ -64,8 +64,11 @@ class ESRNN(nn.Module):
 
         train = train.float()
 
+        seasonalities = [season.to("cuda" if torch.cuda.is_available() else "cpu") for season in seasonalities]
+
         levs = []
         log_diff_of_levels = []
+
         levs.append(train[:, 0] / seasonalities[0])
         for i in range(1, train.shape[1]):
             # CALCULATE LEVEL FOR CURRENT TIMESTEP TO NORMALIZE RNN

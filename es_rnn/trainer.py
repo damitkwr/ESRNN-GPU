@@ -9,6 +9,7 @@ class ESRNNTrainer(nn.Module):
     def __init__(self, model, dataloader, run_id, config):
         super(ESRNNTrainer, self).__init__()
         self.model = model.to(config['device'])
+        self.config = config
         self.dl = dataloader
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config['learning_rate'], eps=config['eps'])
         self.criterion = None
@@ -23,14 +24,15 @@ class ESRNNTrainer(nn.Module):
         epoch_loss = 0
         num_batches = 0
         for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
-            if batch_num % config['print_train_batch_every'] == 0:
-                print("train_batch: %d" % batch_num)
+            print("Train_batch: %d" % (batch_num + 1))
+            train, val, test = train.to(self.config['device']), val.to(self.config['device']), test.to(
+                self.config['device'])
+
             loss = self.train_batch(train, val, test, info_cat, idx)
             epoch_loss += loss
         epoch_loss = epoch_loss / (batch_num + 1)
         self.epochs += 1
-        print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f'
-              % (self.epochs, self.max_epochs, epoch_loss))
+        print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f' % (self.epochs, self.max_epochs, epoch_loss))
         info = {'loss': epoch_loss}
         for tag, value in info.items():
             self.log.log_scalar(tag, value, self.epochs + 1)
@@ -38,9 +40,11 @@ class ESRNNTrainer(nn.Module):
 
     def train_batch(self, train, val, test, info_cat, idx):
         self.optimizer.zero_grad()
-        output = self.model(train, val, test, info_cat, idx)
-        loss = self.criterion(output, )
+        out, out_batch = self.model(train, val, test, info_cat, idx)
+
+        loss = self.criterion(out, out_batch)
         loss.backward()
         nn.utils.clip_grad_norm_(self.model.parameters(), self.config['gradient_clipping'])
         self.optimizer.step()
         return float(loss)
+

@@ -25,6 +25,10 @@ class PinballLoss(nn.Module):
         self.output_size = output_size
 
     def forward(self, predictions, actuals):
+
+        cond = torch.zeros_like(predictions)
+        loss = torch.subtract(actuals - predictions)
+
         losses = []
         for i in range(self.output_size):
             prediction = predictions[i]
