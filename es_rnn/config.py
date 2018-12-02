@@ -6,7 +6,7 @@ import torch
 def get_config():
     q_config = {
         #     RUNTIME PARAMETERS
-        'prod': True,
+        'prod': False,
         'device': ("cuda" if torch.cuda.is_available() else "cpu"),
         'lback': False,
         'chop_val': 72,

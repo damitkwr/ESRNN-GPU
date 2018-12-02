@@ -2,9 +2,6 @@ import pandas as pd
 from torch.utils.data import DataLoader
 from es_rnn.data_loading import create_datasets, SeriesDataset, collate_lines
 from es_rnn.config import get_config
-from matplotlib.pyplot import plot
-import torch
-import numpy as np
 from es_rnn.trainer import ESRNNTrainer
 from es_rnn.model import ESRNN
 import time
@@ -34,10 +31,8 @@ dataloader = DataLoader(dataset, batch_size=q_config['batch_size'], shuffle=True
 # train_batch, val_batch, test_batch, info_cat_batch, idxs_batch = iter(dataloader).next()
 # model.forward(train_batch, val_batch, test_batch, info_cat_batch, idxs_batch, testing=True)
 
-print('Trying out the GPU version')
-
 run_id = str(int(time.time()))
-model = ESRNN(num_series=len(dataset), config=q_config).cuda()
+model = ESRNN(num_series=len(dataset), config=q_config)
 tr = ESRNNTrainer(model, dataloader, run_id, q_config)
 tr.train()
 # train_batch, val_batch, test_batch, info_cat_batch, idxs_batch = iter(dataloader).next()
