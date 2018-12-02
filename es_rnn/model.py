@@ -86,7 +86,7 @@ class ESRNN(nn.Module):
 
         if self.config['level_variability_penalty'] > 0:
             sq_log_diff = torch.stack([(log_diff_of_levels[i] - log_diff_of_levels[i - 1]) ** 2 for i in range(1, len(log_diff_of_levels))])
-            mean_sq_log_diff = torch.mean(sq_log_diff, dim=1)
+            loss_mean_sq_log_diff = torch.mean(sq_log_diff, dim=1)
 
         if self.config['output_size'] > self.config['seasonality']:
             start_seasonality_ext = seasonalities_stacked.shape[1] - self.config['seasonality']

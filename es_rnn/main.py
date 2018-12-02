@@ -19,8 +19,8 @@ if q_config['prod']:
     train_path = '../data/Train/Quarterly-train.csv'
     test_path = '../data/Test/Quarterly-test.csv'
 else:
-    train_path = '../data/M4DataSetTrain/Quarterly-train-small.csv'
-    test_path = '../data/M4DataSetTest/Quarterly-test-small.csv'
+    train_path = '../data/Train/Quarterly-train-small.csv'
+    test_path = '../data/Test/Quarterly-test-small.csv'
 
 train, val, test = create_datasets(train_path, test_path, q_config['output_size'], q_config['chop_val'])
 
@@ -33,8 +33,6 @@ dataloader = DataLoader(dataset, batch_size=q_config['batch_size'], shuffle=True
 # tr = ESRNNTrainer(model, dataloader, run_id, q_config)
 # train_batch, val_batch, test_batch, info_cat_batch, idxs_batch = iter(dataloader).next()
 # model.forward(train_batch, val_batch, test_batch, info_cat_batch, idxs_batch, testing=True)
-
-print('We have tau as', q_config['training_tau'])
 
 print('Trying out the GPU version')
 

@@ -13,7 +13,7 @@ class ESRNNTrainer(nn.Module):
         self.config = config
         self.dl = dataloader
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config['learning_rate'], eps=config['eps'])
-        self.criterion = PinballLoss(self.config['training_tau'], self.config['output_size'])
+        self.criterion = PinballLoss(self.config['training_tau'], self.config['output_size'], self.config['device'])
         self.epochs = 0
         self.max_epochs = config['num_of_train_epochs']
         self.run_id = str(run_id)
