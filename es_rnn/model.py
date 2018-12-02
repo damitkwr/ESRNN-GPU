@@ -3,6 +3,7 @@ import torch.nn as nn
 import copy
 from es_rnn.DRNN import DRNN
 
+
 class ESRNN(nn.Module):
     def __init__(self, num_series, config):
         super(ESRNN, self).__init__()
@@ -34,8 +35,20 @@ class ESRNN(nn.Module):
 
         self.logistic = nn.Sigmoid()
 
+        self.drnn1 = DRNN(self.config['input_size'] + self.config['num_of_categories'],
+                          self.config['state_hsize'],
+                          n_layers=len(self.config['dilations'][0]),
+                          dilations=self.config['dilations'][0],
+                          cell_type='LSTM')
+
+        self.drnn2 = DRNN(self.config['input_size'] + self.config['num_of_categories'] + self.config['state_hsize'],
+                          self.config['state_hsize'],
+                          n_layers=len(self.config['dilations'][1]),
+                          dilations=self.config['dilations'][1],
+                          cell_type='LSTM')
+
     def forward(self, train, val, test, info_cat, idxs, add_nl_layer=False, testing=False):
-        #         GET THE PER SERIES PARAMETERS
+        # GET THE PER SERIES PARAMETERS
         lev_sms = self.logistic(torch.stack([self.init_lev_sms[idx] for idx in idxs]).squeeze(1))
         seas_sms = self.logistic(torch.stack([self.init_seas_sms[idx] for idx in idxs]).squeeze(1))
         init_seasonalities = torch.stack([self.init_seasonalities[idx] for idx in idxs])
@@ -97,8 +110,13 @@ class ESRNN(nn.Module):
         input_batch = torch.cat([i.unsqueeze(0) for i in window_input], dim=0)
         output_batch = torch.cat([i.unsqueeze(0) for i in window_output], dim=0)
 
+        out, _ = self.drnn1(input_batch)
+        out = torch.cat((input_batch, out), dim=2)
+        out, _ = self.drnn2(out)
 
-#         if add_nl_layer:
-#             out = self.nl_layer(out)
-#             out = self.act(out)
-#         out = self.scoring(out)
+        if add_nl_layer:
+            out = self.nl_layer(out)
+            out = self.act(out)
+        out = self.scoring(out)
+
+        return out, output_batch
