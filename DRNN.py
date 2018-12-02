@@ -30,13 +30,13 @@ class DRNN(nn.Module):
         if hidden is None:
             # h = torch.autograd.Variable(torch.zeros(b_size, h_size)).cuda()
             # mem = torch.autograd.Variable(torch.zeros(b_size, h_size)).cuda()
-            h = torch.autograd.Variable(torch.zeros(b_size, h_size))
-            mem = torch.autograd.Variable(torch.zeros(b_size, h_size))
+            h = torch.autograd.Variable(torch.zeros(dilated_inp.size()[1], h_size))
+            mem = torch.autograd.Variable(torch.zeros(dilated_inp.size()[1], h_size))
             hidden = (h.unsqueeze(0), mem.unsqueeze(0))
             dilated_out, hidden = lstm(dilated_inp, hidden)
         else:
             hidden = torch.cat([hidden[i::rate, :, :] for i in range(rate)], 1)
-            dilated_out, hidden = lstm(dilated_inp, hidden)
+            dilated_out, hidden = lstm(dilated_inp, (hidden, hidden))
 
         split_outputs = self._split_outputs(dilated_out, rate)
 
