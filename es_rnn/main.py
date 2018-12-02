@@ -34,6 +34,8 @@ dataloader = DataLoader(dataset, batch_size=q_config['batch_size'], shuffle=True
 # train_batch, val_batch, test_batch, info_cat_batch, idxs_batch = iter(dataloader).next()
 # model.forward(train_batch, val_batch, test_batch, info_cat_batch, idxs_batch, testing=True)
 
+print('We have tau as', q_config['training_tau'])
+
 print('Trying out the GPU version')
 
 run_id = str(int(time.time()))

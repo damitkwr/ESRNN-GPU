@@ -25,13 +25,13 @@ class PinballLoss(nn.Module):
         self.output_size = output_size
 
     def forward(self, predictions, actuals):
+        cond = torch.zeros_like(predictions).cuda()
+        loss = torch.sub(actuals, predictions).cuda()
 
-        cond = torch.zeros_like(predictions)
-        loss = torch.sub(actuals, predictions)
+        less_than = torch.mul(loss, torch.mul(torch.gt(loss, cond).type(torch.FloatTensor).cuda(), self.training_tau))
 
-        less_than = torch.mul(loss, torch.mul(torch.gt(loss, cond).type(torch.FloatTensor), self.training_tau))
-
-        greater_than = torch.mul(loss, torch.mul(torch.lt(loss, cond).type(torch.FloatTensor), (self.training_tau - 1)))
+        greater_than = torch.mul(loss, torch.mul(torch.lt(loss, cond).type(torch.FloatTensor).cuda(),
+                                                 (self.training_tau - 1)))
 
         final_loss = torch.add(less_than, greater_than)
         # losses = []

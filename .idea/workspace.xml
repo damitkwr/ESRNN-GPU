@@ -9,14 +9,11 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="25b09a0b-845a-4c42-922d-18c337f24bbe" name="Default Changelist" comment="Finished stack, concat and padding the dilations">
-      <change beforePath="$PROJECT_DIR$/.idea/11785ESRNN.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/11785ESRNN.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="25b09a0b-845a-4c42-922d-18c337f24bbe" name="Default Changelist" comment="Vectorized Pinball loss">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/es_rnn/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/es_rnn/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/es_rnn/loss_modules.py" beforeDir="false" afterPath="$PROJECT_DIR$/es_rnn/loss_modules.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/es_rnn/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/es_rnn/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/es_rnn/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/es_rnn/model.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/es_rnn/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/es_rnn/trainer.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -27,8 +24,10 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/11785ESRNN$main.coverage" NAME="main Coverage Results" MODIFIED="1543718553317" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/es_rnn" />
-    <SUITE FILE_PATH="coverage/11785ESRNN$trainer.coverage" NAME="trainer Coverage Results" MODIFIED="1543717083358" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/es_rnn" />
+    <SUITE FILE_PATH="coverage/11785ESRNN$main.coverage" NAME="main Coverage Results" MODIFIED="1543722720406" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/es_rnn" />
+    <SUITE FILE_PATH="coverage/11785ESRNN$config.coverage" NAME="config Coverage Results" MODIFIED="1543722718196" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/es_rnn" />
+    <SUITE FILE_PATH="coverage/11785ESRNN$loss_modules.coverage" NAME="loss_modules Coverage Results" MODIFIED="1543721313964" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/es_rnn" />
+    <SUITE FILE_PATH="coverage/11785ESRNN$trainer.coverage" NAME="trainer Coverage Results" MODIFIED="1543721780237" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/es_rnn" />
   </component>
   <component name="FUSProjectUsageTrigger">
     <session id="283267010">
@@ -64,20 +63,20 @@
       <file leaf-file-name="config.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/es_rnn/config.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="108">
-              <caret line="6" column="15" selection-start-line="6" selection-start-column="15" selection-end-line="6" selection-end-column="15" />
+            <state relative-caret-position="17">
+              <caret line="32" column="8" selection-start-line="32" selection-start-column="8" selection-end-line="32" selection-end-column="8" />
               <folding>
-                <element signature="e#0#12#0" expanded="true" />
+                <element signature="e#0#21#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="loss_modules.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="loss_modules.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/es_rnn/loss_modules.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="396">
-              <caret line="28" column="43" selection-start-line="28" selection-start-column="43" selection-end-line="28" selection-end-column="43" />
+            <state relative-caret-position="430">
+              <caret line="35" column="8" selection-start-line="35" selection-start-column="8" selection-end-line="35" selection-end-column="8" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -89,7 +88,7 @@
         <entry file="file://$PROJECT_DIR$/es_rnn/data_loading.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="862">
-              <caret line="58" column="39" lean-forward="true" selection-start-line="58" selection-start-column="39" selection-end-line="58" selection-end-column="39" />
+              <caret line="58" column="39" selection-start-line="58" selection-start-column="39" selection-end-line="58" selection-end-column="39" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -97,11 +96,14 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="main.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="main.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/es_rnn/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="90">
-              <caret line="5" column="11" selection-start-line="5" selection-start-column="11" selection-end-line="5" selection-end-column="11" />
+            <state relative-caret-position="612">
+              <caret line="34" column="42" lean-forward="true" selection-start-line="34" selection-start-column="42" selection-end-line="34" selection-end-column="42" />
+              <folding>
+                <element signature="e#0#19#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -109,8 +111,8 @@
       <file leaf-file-name="trainer.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/es_rnn/trainer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="252">
-              <caret line="14" column="26" selection-start-line="14" selection-start-column="26" selection-end-line="14" selection-end-column="26" />
+            <state relative-caret-position="521">
+              <caret line="40" column="11" selection-start-line="40" selection-start-column="11" selection-end-line="40" selection-end-column="11" />
               <folding>
                 <element signature="e#0#21#0" expanded="true" />
               </folding>
@@ -121,7 +123,7 @@
       <file leaf-file-name="model.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/es_rnn/model.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="277">
+            <state relative-caret-position="142">
               <caret line="69" selection-start-line="69" selection-end-line="69" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
@@ -163,11 +165,11 @@
         <option value="$PROJECT_DIR$/DRNN.py" />
         <option value="$PROJECT_DIR$/es_rnn/test_drnn.py" />
         <option value="$PROJECT_DIR$/es_rnn/DRNN.py" />
-        <option value="$PROJECT_DIR$/es_rnn/config.py" />
-        <option value="$PROJECT_DIR$/es_rnn/main.py" />
         <option value="$PROJECT_DIR$/es_rnn/model.py" />
-        <option value="$PROJECT_DIR$/es_rnn/trainer.py" />
+        <option value="$PROJECT_DIR$/es_rnn/main.py" />
         <option value="$PROJECT_DIR$/es_rnn/loss_modules.py" />
+        <option value="$PROJECT_DIR$/es_rnn/trainer.py" />
+        <option value="$PROJECT_DIR$/es_rnn/config.py" />
       </list>
     </option>
   </component>
@@ -238,7 +240,7 @@
     </option>
   </component>
   <component name="RunManager" selected="Python.main">
-    <configuration name="DRNN (1)" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="config" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="11785ESRNN" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -251,13 +253,13 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/es_rnn/DRNN.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/es_rnn/config.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
-    <configuration name="DRNN" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="loss_modules" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="11785ESRNN" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -265,12 +267,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/es_rnn" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/DRNN.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/es_rnn/loss_modules.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -334,19 +336,19 @@
       <option name="MODULE_MODE" value="false" />
     </configuration>
     <list>
-      <item itemvalue="Python.DRNN" />
-      <item itemvalue="Python.DRNN (1)" />
       <item itemvalue="Python.test_drnn" />
       <item itemvalue="Python.main" />
       <item itemvalue="Python.trainer" />
+      <item itemvalue="Python.loss_modules" />
+      <item itemvalue="Python.config" />
     </list>
     <recent_temporary>
       <list>
         <item itemvalue="Python.main" />
+        <item itemvalue="Python.config" />
         <item itemvalue="Python.trainer" />
+        <item itemvalue="Python.loss_modules" />
         <item itemvalue="Python.test_drnn" />
-        <item itemvalue="Python.DRNN (1)" />
-        <item itemvalue="Python.DRNN" />
       </list>
     </recent_temporary>
   </component>
@@ -382,7 +384,21 @@
       <option name="project" value="LOCAL" />
       <updated>1543602966477</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Finished GPU and vectorizing loss">
+      <created>1543719604560</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1543719604560</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Vectorized Pinball loss">
+      <created>1543721406183</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1543721406183</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
@@ -391,16 +407,15 @@
   <component name="TodoView" selected-index="4" />
   <component name="ToolWindowManager">
     <frame x="1440" y="-3" width="2000" height="1443" extended-state="4" />
-    <editor active="true" />
     <layout>
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
       <window_info anchor="bottom" id="Database Changes" order="7" />
       <window_info anchor="bottom" id="Run" order="2" weight="0.32900763" />
-      <window_info anchor="bottom" id="Version Control" order="8" weight="0.32900763" />
+      <window_info active="true" anchor="bottom" id="Version Control" order="8" visible="true" weight="0.32900763" />
       <window_info anchor="bottom" id="Python Console" order="12" />
       <window_info anchor="bottom" id="Terminal" order="9" />
-      <window_info content_ui="combo" id="Project" order="0" weight="0.120844565" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.12077789" />
       <window_info anchor="bottom" id="Docker" order="11" show_stripe_button="false" />
       <window_info anchor="right" id="Database" order="4" />
       <window_info anchor="right" id="SciView" order="3" />
@@ -483,7 +498,9 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Added first" />
     <MESSAGE value="Finished stack, concat and padding the dilations" />
-    <option name="LAST_COMMIT_MESSAGE" value="Finished stack, concat and padding the dilations" />
+    <MESSAGE value="Finished GPU and vectorizing loss" />
+    <MESSAGE value="Vectorized Pinball loss" />
+    <option name="LAST_COMMIT_MESSAGE" value="Vectorized Pinball loss" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XDebuggerManager">
@@ -495,7 +512,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/es_rnn/trainer.py</url>
-          <line>42</line>
+          <line>44</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>
@@ -591,43 +608,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/es_rnn/config.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="108">
-          <caret line="6" column="15" selection-start-line="6" selection-start-column="15" selection-end-line="6" selection-end-column="15" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/es_rnn/main.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="90">
-          <caret line="5" column="11" selection-start-line="5" selection-start-column="11" selection-end-line="5" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/es_rnn/data_loading.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="862">
-          <caret line="58" column="39" lean-forward="true" selection-start-line="58" selection-start-column="39" selection-end-line="58" selection-end-column="39" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/es_rnn/model.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="277">
-          <caret line="69" selection-start-line="69" selection-end-line="69" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/es_rnn/DRNN.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="652">
@@ -635,10 +615,30 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/es_rnn/model.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="142">
+          <caret line="69" selection-start-line="69" selection-end-line="69" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/es_rnn/data_loading.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="862">
+          <caret line="58" column="39" selection-start-line="58" selection-start-column="39" selection-end-line="58" selection-end-column="39" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/es_rnn/trainer.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="252">
-          <caret line="14" column="26" selection-start-line="14" selection-start-column="26" selection-end-line="14" selection-end-column="26" />
+        <state relative-caret-position="521">
+          <caret line="40" column="11" selection-start-line="40" selection-start-column="11" selection-end-line="40" selection-end-column="11" />
           <folding>
             <element signature="e#0#21#0" expanded="true" />
           </folding>
@@ -647,10 +647,30 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/es_rnn/loss_modules.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="396">
-          <caret line="28" column="43" selection-start-line="28" selection-start-column="43" selection-end-line="28" selection-end-column="43" />
+        <state relative-caret-position="430">
+          <caret line="35" column="8" selection-start-line="35" selection-start-column="8" selection-end-line="35" selection-end-column="8" />
           <folding>
             <element signature="e#0#12#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/es_rnn/config.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="17">
+          <caret line="32" column="8" selection-start-line="32" selection-start-column="8" selection-end-line="32" selection-end-column="8" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/es_rnn/main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="612">
+          <caret line="34" column="42" lean-forward="true" selection-start-line="34" selection-start-column="42" selection-end-line="34" selection-end-column="42" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
           </folding>
         </state>
       </provider>

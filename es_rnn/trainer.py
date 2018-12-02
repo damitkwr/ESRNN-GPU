@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 from utils.logger import Logger
+from es_rnn.loss_modules import PinballLoss
 
 # THIS IS JUST A START THIS CLASS NEEDS TO CHANGE A TON!
 
@@ -12,7 +13,7 @@ class ESRNNTrainer(nn.Module):
         self.config = config
         self.dl = dataloader
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config['learning_rate'], eps=config['eps'])
-        self.criterion = None
+        self.criterion = PinballLoss(self.config['training_tau'], self.config['output_size'])
         self.epochs = 0
         self.max_epochs = config['num_of_train_epochs']
         self.run_id = str(run_id)
@@ -23,20 +24,21 @@ class ESRNNTrainer(nn.Module):
         self.model.train()
         epoch_loss = 0
         num_batches = 0
-        for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
-            print("Train_batch: %d" % (batch_num + 1))
-            train, val, test = train.to(self.config['device']), val.to(self.config['device']), test.to(
-                self.config['device'])
+        for i in range(self.max_epochs):
+            for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
+                print("Train_batch: %d" % (batch_num + 1))
+                train, val, test = train.to(self.config['device']), val.to(self.config['device']), test.to(
+                    self.config['device'])
 
-            loss = self.train_batch(train, val, test, info_cat, idx)
-            epoch_loss += loss
-        epoch_loss = epoch_loss / (batch_num + 1)
-        self.epochs += 1
-        print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f' % (self.epochs, self.max_epochs, epoch_loss))
-        info = {'loss': epoch_loss}
-        for tag, value in info.items():
-            self.log.log_scalar(tag, value, self.epochs + 1)
-        return epoch_loss
+                loss = self.train_batch(train, val, test, info_cat, idx)
+                epoch_loss += loss
+            epoch_loss = epoch_loss / (batch_num + 1)
+            self.epochs += 1
+            print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f' % (self.epochs, self.max_epochs, epoch_loss))
+            info = {'loss': epoch_loss}
+            for tag, value in info.items():
+                self.log.log_scalar(tag, value, self.epochs + 1)
+            # return epoch_loss
 
     def train_batch(self, train, val, test, info_cat, idx):
         self.optimizer.zero_grad()
