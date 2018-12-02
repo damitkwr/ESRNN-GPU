@@ -35,10 +35,20 @@ class ESRNNTrainer(nn.Module):
             epoch_loss = epoch_loss / (batch_num + 1)
             self.epochs += 1
             print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f' % (self.epochs, self.max_epochs, epoch_loss))
+
             info = {'loss': epoch_loss}
             for tag, value in info.items():
                 self.log.log_scalar(tag, value, self.epochs + 1)
-            # return epoch_loss
+
+            for tag, value in self.model.named_parameters():
+                if value.grad is not None:
+                    tag = tag.replace('.', '/')
+                    self.log.log_histogram(tag, value.data.cpu().numpy(), self.epochs + 1)
+                    self.log.log_histogram(tag + '/grad', value.grad.data.cpu().numpy(), self.epochs + 1)
+                else:
+                    print('Not printing %s because it\'s not updating' % tag)
+
+            return epoch_loss
 
     def train_batch(self, train, val, test, info_cat, idx):
         self.optimizer.zero_grad()
