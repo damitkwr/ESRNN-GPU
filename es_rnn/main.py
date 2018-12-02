@@ -16,8 +16,8 @@ print('loading data')
 info = pd.read_csv('../data/info.csv')
 
 if q_config['prod']:
-    train_path = '../data/M4DataSetTrain/Quarterly-train.csv'
-    test_path = '../data/M4DataSetTest/Quarterly-test.csv'
+    train_path = '../data/Train/Quarterly-train.csv'
+    test_path = '../data/Test/Quarterly-test.csv'
 else:
     train_path = '../data/M4DataSetTrain/Quarterly-train-small.csv'
     test_path = '../data/M4DataSetTest/Quarterly-test-small.csv'
@@ -28,8 +28,19 @@ dataset = SeriesDataset(train, val, test, info, q_config['variable'], q_config['
 dataloader = DataLoader(dataset, batch_size=q_config['batch_size'], shuffle=True)
 
 # print('initializing model and train')
+# run_id = str(int(time.time()))
+# model = ESRNN(num_series=len(dataset), config=q_config)
+# tr = ESRNNTrainer(model, dataloader, run_id, q_config)
+# train_batch, val_batch, test_batch, info_cat_batch, idxs_batch = iter(dataloader).next()
+# model.forward(train_batch, val_batch, test_batch, info_cat_batch, idxs_batch, testing=True)
+
+print('We have tau as', q_config['training_tau'])
+
+print('Trying out the GPU version')
+
 run_id = str(int(time.time()))
-model = ESRNN(num_series=len(dataset), config=q_config)
+model = ESRNN(num_series=len(dataset), config=q_config).cuda()
 tr = ESRNNTrainer(model, dataloader, run_id, q_config)
-train_batch, val_batch, test_batch, info_cat_batch, idxs_batch = iter(dataloader).next()
-model.forward(train_batch, val_batch, test_batch, info_cat_batch, idxs_batch, testing=True)
+tr.train()
+# train_batch, val_batch, test_batch, info_cat_batch, idxs_batch = iter(dataloader).next()
+# model.forward(train_batch, val_batch, test_batch, info_cat_batch, idxs_batch, testing=True)

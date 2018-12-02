@@ -25,16 +25,25 @@ class PinballLoss(nn.Module):
         self.output_size = output_size
 
     def forward(self, predictions, actuals):
-        losses = []
-        for i in range(self.output_size):
-            prediction = predictions[i]
-            actual = actuals[i]
-            if actual > prediction:
-                losses.append((actual - prediction) * self.training_tau)
-            else:
-                losses.append((actual - prediction) * (self.training_tau - 1))
-        loss = torch.Tensor(losses)
-        return torch.sum(loss) / self.output_size * 2
+        cond = torch.zeros_like(predictions).cuda()
+        loss = torch.sub(actuals, predictions).cuda()
+
+        less_than = torch.mul(loss, torch.mul(torch.gt(loss, cond).type(torch.FloatTensor).cuda(), self.training_tau))
+
+        greater_than = torch.mul(loss, torch.mul(torch.lt(loss, cond).type(torch.FloatTensor).cuda(),
+                                                 (self.training_tau - 1)))
+
+        final_loss = torch.add(less_than, greater_than)
+        # losses = []
+        # for i in range(self.output_size):
+        #     prediction = predictions[i]
+        #     actual = actuals[i]
+        #     if actual > prediction:
+        #         losses.append((actual - prediction) * self.training_tau)
+        #     else:
+        #         losses.append((actual - prediction) * (self.training_tau - 1))
+        # loss = torch.Tensor(losses)
+        return torch.sum(final_loss) / self.output_size * 2
 
 
 # test1 = torch.rand(100)
@@ -130,3 +139,34 @@ def errorFunc(predictions, actuals, output_size, percentile):
 # print(wQuantLoss(test1, test2, 100, 0.48))
 # print(errorFunc(test1, test2, 100, 50))
 # print(sMAPE(test1, test2, 100))
+
+def main():
+    # Test vectorized calculation
+    A = torch.randn(10, 10)
+    B = torch.randn(10, 10)
+
+    output_size = 10
+    training_tau = 0.1
+    loss = PinballLoss(training_tau, output_size)
+
+    vec_loss = loss(A, B)
+
+    cpu_A = A.detach().numpy()
+    cpu_B = B.detach().numpy()
+
+    losses = []
+    for i in range(output_size):
+        prediction = cpu_A[i]
+        actual = cpu_B[i]
+        if actual > prediction:
+            losses.append((actual - prediction) * training_tau)
+        else:
+            losses.append((actual - prediction) * (training_tau - 1))
+    loss = torch.Tensor(losses)
+    cpu_loss = torch.sum(loss) / output_size * 2
+
+    assert vec_loss == cpu_loss
+
+
+if __name__ == '__main__':
+    main()

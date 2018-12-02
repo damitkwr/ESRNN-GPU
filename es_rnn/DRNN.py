@@ -9,11 +9,11 @@ use_cuda = torch.cuda.is_available()
 
 class DRNN(nn.Module):
 
-    def __init__(self, n_input, n_hidden, n_layers, dropout=0, cell_type='GRU', batch_first=False):
+    def __init__(self, n_input, n_hidden, n_layers, dilations, dropout=0, cell_type='GRU', batch_first=False):
 
         super(DRNN, self).__init__()
 
-        self.dilations = [2 ** i for i in range(n_layers)]
+        self.dilations = dilations
         self.cell_type = cell_type
         self.batch_first = batch_first
 
