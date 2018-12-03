@@ -27,8 +27,7 @@ dataloader = DataLoader(dataset, batch_size=q_config['batch_size'], shuffle=True
 run_id = str(int(time.time()))
 model = ESRNN(num_series=len(dataset), config=q_config)
 tr = ESRNNTrainer(model, dataloader, run_id, q_config)
-for i in range(15):
-    tr.train()
+tr.train()
 
 # print('initializing model and train')
 # run_id = str(int(time.time()))
