@@ -18,16 +18,13 @@ class ESRNN(nn.Module):
         # ANOTHER THING TO LOOK AT IS RATHER THAN INDEXING NORMALLY TO USE INDEX_SELECT METHOD ON THE TENSOR
         #             UPDATE 2018-11-30: PARAMETERS SHOWING IN MODEL PRINT (AREDD)
         for i in range(num_series):
-            init_lev_sms.append(nn.Parameter(torch.Tensor([0.5])))
-            init_seas_sms.append(nn.Parameter(torch.Tensor([0.5])))
-            temp_seas = []
-            for j in range(config['seasonality']):
-                temp_seas.append(nn.Parameter(torch.Tensor([0.5])))
-            init_seasonalities.append(torch.Tensor(nn.ParameterList(copy.copy(temp_seas))))
+            init_lev_sms.append(nn.Parameter(torch.Tensor([0.5]), requires_grad=True))
+            init_seas_sms.append(nn.Parameter(torch.Tensor([0.5]), requires_grad=True))
+            init_seasonalities.append(nn.Parameter((torch.ones(config['seasonality']) * 0.5), requires_grad=True))
 
         self.init_lev_sms = nn.ParameterList(init_lev_sms)
         self.init_seas_sms = nn.ParameterList(init_seas_sms)
-        self.init_seasonalities = init_seasonalities
+        self.init_seasonalities = nn.ParameterList(init_seasonalities)
 
         self.nl_layer = nn.Linear(config['state_hsize'], config['state_hsize'])
         self.act = nn.Tanh()
@@ -64,8 +61,6 @@ class ESRNN(nn.Module):
 
         train = train.float()
 
-        seasonalities = [season.to("cuda" if torch.cuda.is_available() else "cpu") for season in seasonalities]
-
         levs = []
         log_diff_of_levels = []
 
@@ -98,17 +93,19 @@ class ESRNN(nn.Module):
             input_window_start = i + 1 - self.config['input_size']
             input_window_end = i + 1
 
-            train_deseas_window = train[:, input_window_start:input_window_end] / seasonalities_stacked[:, input_window_start:input_window_end]
-            train_deseas_norm_window = (train_deseas_window / levs_stacked[:, i].unsqueeze(1))
-            train_deseas_norm_cat_window = torch.cat((train_deseas_norm_window, info_cat), dim=1)
-            window_input.append(copy.copy(train_deseas_norm_cat_window))
+            train_deseas_window_input = train[:, input_window_start:input_window_end] / seasonalities_stacked[:,
+                                                                                        input_window_start:input_window_end]
+            train_deseas_norm_window_input = (train_deseas_window_input / levs_stacked[:, i].unsqueeze(1))
+            train_deseas_norm_cat_window_input = torch.cat((train_deseas_norm_window_input, info_cat), dim=1)
+            window_input.append(train_deseas_norm_cat_window_input)
 
             output_window_start = i + 1
             output_window_end = i + 1 + self.config['output_size']
 
-            train_deseas_window = train[:, output_window_start:output_window_end] / seasonalities_stacked[:, output_window_start:output_window_end]
-            train_deseas_norm_window = (train_deseas_window / levs_stacked[:, i].unsqueeze(1))
-            window_output.append(copy.copy(train_deseas_norm_window))
+            train_deseas_window_output = train[:, output_window_start:output_window_end] / seasonalities_stacked[:,
+                                                                                           output_window_start:output_window_end]
+            train_deseas_norm_window_output = (train_deseas_window_output / levs_stacked[:, i].unsqueeze(1))
+            window_output.append(train_deseas_norm_window_output)
 
         input_batch = torch.cat([i.unsqueeze(0) for i in window_input], dim=0)
         output_batch = torch.cat([i.unsqueeze(0) for i in window_output], dim=0)
