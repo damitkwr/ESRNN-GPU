@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from es_rnn.loss_modules import PinballLoss
+from es_rnn.loss_modules import PinballLoss, sMAPE
 from utils.logger import Logger
 
 
@@ -29,39 +29,42 @@ class ESRNNTrainer(nn.Module):
     def train(self):
         self.model.train()
         epoch_loss = 0
-        max_loss = 10000
+        max_loss = 1e8
         for e in range(self.max_epochs):
             self.scheduler.step()  # Step to anneal the learning rate if needed
             for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
                 start = time.time()
                 print("Train_batch: %d" % (batch_num + 1))
-                train, val, test = train.to(self.config['device']), val.to(self.config['device']), test.to(
-                    self.config['device'])
 
-                loss = self.train_batch(train, val, test, info_cat, idx)
+                loss, hold_out_smape = self.train_batch(train, val, test, info_cat, idx)
                 epoch_loss += loss
                 end = time.time()
                 self.log.log_scalar('Iteration time', end - start, batch_num + 1 * (e + 1))
             epoch_loss = epoch_loss / (batch_num + 1)
             self.epochs += 1
-            print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f' % (self.epochs, self.max_epochs, epoch_loss))
-            info = {'loss': epoch_loss}
+            print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f, Hold Out sMAPE: %.4f' % (
+            self.epochs, self.max_epochs, epoch_loss, hold_out_smape))
+            info = {'loss': epoch_loss, 'hold_out_smape': hold_out_smape}
 
             if epoch_loss < max_loss:
                 self.save(epoch_loss)
-            self.log_hist_values(info)
+
+            self.log_values(info)
 
             return epoch_loss
 
     def train_batch(self, train, val, test, info_cat, idx):
         self.optimizer.zero_grad()
-        out, out_batch = self.model(train, val, test, info_cat, idx)
+        network_pred, network_act, hold_out_pred, hold_out_act = self.model(train, val, test, info_cat, idx)
 
-        loss = self.criterion(out, out_batch)
+        hold_out_smape = sMAPE(hold_out_pred.view(-1), hold_out_act.view(-1), self.config['output_size']) / self.config[
+            'batch_size']
+
+        loss = self.criterion(network_pred, network_act)
         loss.backward()
         nn.utils.clip_grad_norm_(self.model.parameters(), self.config['gradient_clipping'])
         self.optimizer.step()
-        return float(loss)
+        return float(loss), float(hold_out_smape)
 
     def save(self, loss, save_dir='.'):
         print('Loss decreased, saving model!')
@@ -71,7 +74,7 @@ class ESRNNTrainer(nn.Module):
         os.makedirs(file_path, exist_ok=True)
         torch.save({'state_dict': self.model.state_dict()}, model_path)
 
-    def log_hist_values(self, info):
+    def log_values(self, info):
 
         # SCALAR
         for tag, value in info.items():

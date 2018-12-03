@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from es_rnn.data_loading import create_datasets, SeriesDataset, collate_lines
 from es_rnn.config import get_config
 from es_rnn.trainer import ESRNNTrainer
-from es_rnn.Zmodel import ESRNN
+from es_rnn.model import ESRNN
 import time
 
 print('loading config')
