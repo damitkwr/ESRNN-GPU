@@ -23,7 +23,7 @@ def get_config():
         'learning_rate': 1e-3,
         'learning_rates': ((10, 1e-4)),
         'per_series_lr_multip': 1,
-        'num_of_train_epochs': 15,
+        'num_of_train_epochs': 2,
         'state_hsize': 40,
         'seasonality': 4,
         'input_size': 4,

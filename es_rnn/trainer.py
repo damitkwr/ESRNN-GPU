@@ -15,7 +15,8 @@ class ESRNNTrainer(nn.Module):
         self.model = model.to(config['device'])
         self.config = config
         self.dl = dataloader
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config['learning_rate'], eps=config['eps'])
+        # self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config['learning_rate'], eps=config['eps'])
+        self.optimizer = torch.optim.ASGD(self.model.parameters(), lr=config['learning_rate'])
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
                                                          step_size=config['lr_anneal_step'],
                                                          gamma=config['lr_anneal_rate'])
@@ -51,7 +52,6 @@ class ESRNNTrainer(nn.Module):
 
             self.log_values(info)
 
-            return epoch_loss
 
     def train_batch(self, train, val, test, info_cat, idx):
         self.optimizer.zero_grad()
@@ -62,7 +62,7 @@ class ESRNNTrainer(nn.Module):
 
         loss = self.criterion(network_pred, network_act)
         loss.backward()
-        nn.utils.clip_grad_norm_(self.model.parameters(), self.config['gradient_clipping'])
+        nn.utils.clip_grad_value_(self.model.parameters(), self.config['gradient_clipping'])
         self.optimizer.step()
         return float(loss), float(hold_out_smape)
 
