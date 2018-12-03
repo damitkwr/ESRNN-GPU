@@ -6,7 +6,7 @@ import torch
 def get_config():
     q_config = {
         #     RUNTIME PARAMETERS
-        'prod': False,
+        'prod': True,
         'device': ("cuda" if torch.cuda.is_available() else "cpu"),
         'lback': False,
         'chop_val': 72,
@@ -30,7 +30,7 @@ def get_config():
         'output_size': 8,
         'min_inp_seq_len': 0,
         'level_variability_penalty': 80,
-        'batch_size': 32,
+        'batch_size': 128,
         'num_of_categories': 6,  # in data provided
         'big_loop': 3,
         'num_of_chunks': 2,
@@ -52,7 +52,10 @@ def get_config():
         'lr_tolerance_multip': 1.005,
         'l3_period': 2,
         'min_epochs_before_changing_lrate': 2,
-        'print_train_batch_every': 5
+        'print_train_batch_every': 5,
+        'lr_anneal_rate': 0.5,
+        'lr_anneal_step': 5
+
     }
 
     q_config['input_size_i'] = q_config['input_size']

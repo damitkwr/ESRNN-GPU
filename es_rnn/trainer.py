@@ -1,9 +1,12 @@
-import numpy as np
 import os
-import torch.nn as nn
+import time
+
+import numpy as np
 import torch
-from utils.logger import Logger
+import torch.nn as nn
+
 from es_rnn.loss_modules import PinballLoss
+from utils.logger import Logger
 
 
 class ESRNNTrainer(nn.Module):
@@ -13,6 +16,9 @@ class ESRNNTrainer(nn.Module):
         self.config = config
         self.dl = dataloader
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config['learning_rate'], eps=config['eps'])
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
+                                                         step_size=config['lr_anneal_step'],
+                                                         gamma=config['lr_anneal_rate'])
         self.criterion = PinballLoss(self.config['training_tau'], self.config['output_size'], self.config['device'])
         self.epochs = 0
         self.max_epochs = config['num_of_train_epochs']
@@ -23,19 +29,26 @@ class ESRNNTrainer(nn.Module):
     def train(self):
         self.model.train()
         epoch_loss = 0
-        for i in range(self.max_epochs):
+        max_loss = 10000
+        for e in range(self.max_epochs):
+            self.scheduler.step()  # Step to anneal the learning rate if needed
             for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
+                start = time.time()
                 print("Train_batch: %d" % (batch_num + 1))
                 train, val, test = train.to(self.config['device']), val.to(self.config['device']), test.to(
                     self.config['device'])
 
                 loss = self.train_batch(train, val, test, info_cat, idx)
                 epoch_loss += loss
+                end = time.time()
+                self.log.log_scalar('Iteration time', end - start, batch_num + 1 * (e + 1))
             epoch_loss = epoch_loss / (batch_num + 1)
             self.epochs += 1
-
             print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f' % (self.epochs, self.max_epochs, epoch_loss))
             info = {'loss': epoch_loss}
+
+            if epoch_loss < max_loss:
+                self.save(epoch_loss)
             self.log_hist_values(info)
 
             return epoch_loss
@@ -50,9 +63,11 @@ class ESRNNTrainer(nn.Module):
         self.optimizer.step()
         return float(loss)
 
-    def save(self, save_dir='.'):
+    def save(self, loss, save_dir='.'):
+        print('Loss decreased, saving model!')
         file_path = os.path.join(save_dir, 'models', self.run_id, self.prod_str)
-        model_path = os.path.join(save_dir, 'models', self.run_id, self.prod_str, 'model-{}.pyt'.format(self.epochs))
+        model_path = os.path.join(save_dir, 'models', self.run_id, self.prod_str,
+                                  'model-{}-loss-{}.pyt'.format(self.epochs, loss))
         os.makedirs(file_path, exist_ok=True)
         torch.save({'state_dict': self.model.state_dict()}, model_path)
 
