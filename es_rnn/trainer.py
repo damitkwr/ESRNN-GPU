@@ -1,9 +1,9 @@
+import numpy as np
+import os
 import torch.nn as nn
 import torch
 from utils.logger import Logger
 from es_rnn.loss_modules import PinballLoss
-
-# THIS IS JUST A START THIS CLASS NEEDS TO CHANGE A TON!
 
 
 class ESRNNTrainer(nn.Module):
@@ -23,7 +23,6 @@ class ESRNNTrainer(nn.Module):
     def train(self):
         self.model.train()
         epoch_loss = 0
-        num_batches = 0
         for i in range(self.max_epochs):
             for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
                 print("Train_batch: %d" % (batch_num + 1))
@@ -34,19 +33,10 @@ class ESRNNTrainer(nn.Module):
                 epoch_loss += loss
             epoch_loss = epoch_loss / (batch_num + 1)
             self.epochs += 1
+
             print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f' % (self.epochs, self.max_epochs, epoch_loss))
-
             info = {'loss': epoch_loss}
-            for tag, value in info.items():
-                self.log.log_scalar(tag, value, self.epochs + 1)
-
-            for tag, value in self.model.named_parameters():
-                if value.grad is not None:
-                    tag = tag.replace('.', '/')
-                    self.log.log_histogram(tag, value.data.cpu().numpy(), self.epochs + 1)
-                    self.log.log_histogram(tag + '/grad', value.grad.data.cpu().numpy(), self.epochs + 1)
-                else:
-                    print('Not printing %s because it\'s not updating' % tag)
+            self.log_hist_values(info)
 
             return epoch_loss
 
@@ -60,3 +50,36 @@ class ESRNNTrainer(nn.Module):
         self.optimizer.step()
         return float(loss)
 
+    def save(self, save_dir='.'):
+        file_path = os.path.join(save_dir, 'models', self.run_id, self.prod_str)
+        model_path = os.path.join(save_dir, 'models', self.run_id, self.prod_str, 'model-{}.pyt'.format(self.epochs))
+        os.makedirs(file_path, exist_ok=True)
+        torch.save({'state_dict': self.model.state_dict()}, model_path)
+
+    def log_hist_values(self, info):
+
+        # SCALAR
+        for tag, value in info.items():
+            self.log.log_scalar(tag, value, self.epochs + 1)
+
+        # HISTS
+        batch_params = dict()
+        for tag, value in self.model.named_parameters():
+            if value.grad is not None:
+                if "init" in tag:
+                    name, _ = tag.split(".")
+                    if name not in batch_params.keys() or "%s/grad" % name not in batch_params.keys():
+                        batch_params[name] = []
+                        batch_params["%s/grad" % name] = []
+                    batch_params[name].append(value.data.cpu().numpy())
+                    batch_params["%s/grad" % name].append(value.grad.cpu().numpy())
+                else:
+                    tag = tag.replace('.', '/')
+                    self.log.log_histogram(tag, value.data.cpu().numpy(), self.epochs + 1)
+                    self.log.log_histogram(tag + '/grad', value.grad.data.cpu().numpy(), self.epochs + 1)
+            else:
+                print('Not printing %s because it\'s not updating' % tag)
+
+        for tag, v in batch_params.items():
+            vals = np.concatenate(np.array(v))
+            self.log.log_histogram(tag, vals, self.epochs + 1)
