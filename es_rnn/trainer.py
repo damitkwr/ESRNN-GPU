@@ -44,14 +44,15 @@ class ESRNNTrainer(nn.Module):
             epoch_loss = epoch_loss / (batch_num + 1)
             self.epochs += 1
             print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f, Hold Out sMAPE: %.4f' % (
-            self.epochs, self.max_epochs, epoch_loss, hold_out_smape))
+                self.epochs, self.max_epochs, epoch_loss, hold_out_smape))
             info = {'loss': epoch_loss, 'hold_out_smape': hold_out_smape}
+
+            self.log.log_scalar('Val sMAPE', hold_out_smape, e + 1)  # Add the validation sMAPE
 
             if epoch_loss < max_loss:
                 self.save(epoch_loss)
 
             self.log_values(info)
-
 
     def train_batch(self, train, val, test, info_cat, idx):
         self.optimizer.zero_grad()
