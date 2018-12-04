@@ -23,7 +23,7 @@ class ESRNNTrainer(nn.Module):
         self.max_epochs = config['num_of_train_epochs']
         self.run_id = str(run_id)
         self.prod_str = 'prod' if config['prod'] else 'dev'
-        self.log = Logger("../logs/train%s%s" % (self.prod_str, self.run_id))
+        self.log = Logger("../logs/train%s%s%s" % (self.config['variable'], self.prod_str, self.run_id))
 
     def train(self):
         self.model.train()
