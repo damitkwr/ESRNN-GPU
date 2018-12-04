@@ -9,6 +9,7 @@ class ESRNN(nn.Module):
         super(ESRNN, self).__init__()
         self.config = config
         self.num_series = num_series
+        self.add_nl_layer = self.config['add_nl_layer']
 
         init_lev_sms = []
         init_seas_sms = []
@@ -42,14 +43,14 @@ class ESRNN(nn.Module):
                           dilations=self.config['dilations'][1],
                           cell_type='LSTM')
 
-    def forward(self, train, val, test, info_cat, idxs, add_nl_layer=False, testing=False):
+    def forward(self, train, val, test, info_cat, idxs, testing=False):
         # GET THE PER SERIES PARAMETERS
         lev_sms = self.logistic(torch.stack([self.init_lev_sms[idx] for idx in idxs]).squeeze(1))
         seas_sms = self.logistic(torch.stack([self.init_seas_sms[idx] for idx in idxs]).squeeze(1))
         init_seasonalities = torch.stack([self.init_seasonalities[idx] for idx in idxs])
 
         seasonalities = []
-        # prime seasonality
+        # PRIME SEASONALITY
         for i in range(self.config['seasonality']):
             seasonalities.append(torch.exp(init_seasonalities[:, i]))
         seasonalities.append(torch.exp(init_seasonalities[:, 0]))
@@ -115,7 +116,7 @@ class ESRNN(nn.Module):
         network_output_2, _ = self.drnn2(network_output_1)
         network_output = torch.cat((network_output_1, network_output_2), dim=2)
 
-        if add_nl_layer:
+        if self.add_nl_layer:
             network_output = self.nl_layer(network_output)
             network_output = self.act(network_output)
         network_output = self.scoring(network_output)
