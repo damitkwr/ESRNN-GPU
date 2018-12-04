@@ -54,12 +54,15 @@ class ESRNNTrainer(nn.Module):
 
     def train_batch(self, train, val, test, info_cat, idx):
         self.optimizer.zero_grad()
-        network_pred, network_act, hold_out_pred, hold_out_act = self.model(train, val, test, info_cat, idx)
+        network_pred, network_act, hold_out_pred, hold_out_act, loss_mean_sq_log_diff_level = self.model(train, val,
+                                                                                                         test, info_cat,
+                                                                                                         idx)
 
         hold_out_smape = sMAPE(hold_out_pred.view(-1), hold_out_act.view(-1), self.config['output_size']) / self.config[
             'batch_size']
 
         loss = self.criterion(network_pred, network_act)
+        # loss = loss + loss_mean_sq_log_diff_level
         loss.backward()
         nn.utils.clip_grad_value_(self.model.parameters(), self.config['gradient_clipping'])
         self.optimizer.step()

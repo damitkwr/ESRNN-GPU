@@ -81,13 +81,13 @@ class ESRNN(nn.Module):
         if self.config['level_variability_penalty'] > 0:
             sq_log_diff = torch.stack(
                 [(log_diff_of_levels[i] - log_diff_of_levels[i - 1]) ** 2 for i in range(1, len(log_diff_of_levels))])
-            loss_mean_sq_log_diff = torch.mean(sq_log_diff, dim=1)
+            loss_mean_sq_log_diff_level = torch.mean(sq_log_diff)
 
         if self.config['output_size'] > self.config['seasonality']:
             start_seasonality_ext = seasonalities_stacked.shape[1] - self.config['seasonality']
             seasonalities_stacked = torch.cat((seasonalities_stacked, seasonalities_stacked[:, start_seasonality_ext:]),
                                               dim=1)
-
+            
         window_input_list = []
         window_output_list = []
         for i in range(self.config['input_size'] - 1, train.shape[1]):
@@ -121,7 +121,7 @@ class ESRNN(nn.Module):
             network_output = self.act(network_output)
         network_output = self.scoring(network_output)
 
-        # USE THE LAST VALUE OF THE NETWORK OUTPUT TO COMPUTE THE HOLDOUT PREDITIONS
+        # USE THE LAST VALUE OF THE NETWORK OUTPUT TO COMPUTE THE HOLDOUT PREDICTIONS
         hold_out_output_reseas = network_output[-1] * seasonalities_stacked[:, -self.config['output_size']:]
         hold_out_output_renorm = hold_out_output_reseas * levs_stacked[:, -1].unsqueeze(1)
 
@@ -133,4 +133,4 @@ class ESRNN(nn.Module):
         network_act = window_output
 
         # RETURN JUST THE TRAINING INPUT RATHER THAN THE ENTIRE SET BECAUSE THE HOLDOUT IS BEING GENERATED WITH THE REST
-        return network_pred, network_act, hold_out_pred, hold_out_act
+        return network_pred, network_act, hold_out_pred, hold_out_act, loss_mean_sq_log_diff_level

@@ -5,7 +5,7 @@ import torch
 
 def get_config(interval):
     config = {
-        'prod': True,
+        'prod': False,
         'device': ("cuda" if torch.cuda.is_available() else "cpu"),
         'percentile': 50,
         'training_percentile': 45,
@@ -59,6 +59,6 @@ def get_config(interval):
 
     if not config['prod']:
         config['batch_size'] = 10
-        config['num_of_train_epochs'] = 2
+        config['num_of_train_epochs'] = 15
 
     return config
