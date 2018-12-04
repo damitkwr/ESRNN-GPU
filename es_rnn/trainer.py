@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from es_rnn.loss_modules import PinballLoss, sMAPE
 from utils.logger import Logger
+import pandas as pd
 
 
 class ESRNNTrainer(nn.Module):
@@ -25,32 +26,34 @@ class ESRNNTrainer(nn.Module):
         self.prod_str = 'prod' if config['prod'] else 'dev'
         self.log = Logger("../logs/train%s%s%s" % (self.config['variable'], self.prod_str, self.run_id))
 
-    def train(self):
-        self.model.train()
-        epoch_loss = 0
+    def train_epochs(self):
         max_loss = 1e8
         for e in range(self.max_epochs):
-            self.scheduler.step()  # Step to anneal the learning rate if needed
-            for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
-                start = time.time()
-                print("Train_batch: %d" % (batch_num + 1))
-
-                loss, hold_out_smape = self.train_batch(train, val, test, info_cat, idx)
-                epoch_loss += loss
-                end = time.time()
-                self.log.log_scalar('Iteration time', end - start, batch_num + 1 * (e + 1))
-            epoch_loss = epoch_loss / (batch_num + 1)
-            self.epochs += 1
-            print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f, Hold Out sMAPE: %.4f' % (
-                self.epochs, self.max_epochs, epoch_loss, hold_out_smape))
-            info = {'loss': epoch_loss, 'hold_out_smape': hold_out_smape}
-
-            self.log.log_scalar('Val sMAPE', hold_out_smape, e + 1)  # Add the validation sMAPE
-
+            self.scheduler.step()
+            epoch_loss = self.train()
             if epoch_loss < max_loss:
                 self.save(epoch_loss)
 
-            self.log_values(info)
+    def train(self):
+        self.model.train()
+        epoch_loss = 0
+        for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
+            start = time.time()
+            print("Train_batch: %d" % (batch_num + 1))
+            loss, hold_out_smape = self.train_batch(train, val, test, info_cat, idx)
+            epoch_loss += loss
+            end = time.time()
+            self.log.log_scalar('Iteration time', end - start, batch_num + 1 * (e + 1))
+        epoch_loss = epoch_loss / (batch_num + 1)
+        self.epochs += 1
+
+        # LOG EPOCH LEVEL INFORMATION
+        print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f, Hold Out sMAPE: %.4f' % (
+            self.epochs, self.max_epochs, epoch_loss, hold_out_smape))
+        info = {'loss': epoch_loss, 'hold_out_smape': hold_out_smape}
+        self.log_values(info)
+
+        return epoch_loss
 
     def train_batch(self, train, val, test, info_cat, idx):
         self.optimizer.zero_grad()
@@ -62,11 +65,24 @@ class ESRNNTrainer(nn.Module):
             'batch_size']
 
         loss = self.criterion(network_pred, network_act)
-        # loss = loss + loss_mean_sq_log_diff_level
+        loss = loss + loss_mean_sq_log_diff_level * self.config['level_variability_penalty']
         loss.backward()
         nn.utils.clip_grad_value_(self.model.parameters(), self.config['gradient_clipping'])
         self.optimizer.step()
         return float(loss), float(hold_out_smape)
+
+    def output_training_stats(self):
+        self.model.eval()
+        overall_hold_out = []
+        for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
+            _, _, hold_out_pred, hold_out_act, _ = self.model(train, val, test, info_cat, idx)
+
+            overall_hold_out.append(np.concatenate((info_cat.cpu().detach().numpy(),
+                                                    hold_out_act.cpu().detach().numpy(),
+                                                    hold_out_pred.cpu().detach().numpy()), axis=1))
+        overall_hold_out_df = pd.DataFrame(np.concatenate(overall_hold_out, axis=0))
+
+        print('test')
 
     def save(self, loss, save_dir='.'):
         print('Loss decreased, saving model!')
