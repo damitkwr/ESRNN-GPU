@@ -26,9 +26,10 @@ class ESRNN(nn.Module):
         self.init_seas_sms = nn.ParameterList(init_seas_sms)
         self.init_seasonalities = nn.ParameterList(init_seasonalities)
 
-        self.nl_layer = nn.Linear(config['state_hsize'], config['state_hsize'])
+        self.nl_layer = nn.Linear(config['state_hsize'] + config['state_hsize'],
+                                  config['state_hsize'] + config['state_hsize'])
         self.act = nn.Tanh()
-        self.scoring = nn.Linear(config['state_hsize'], config['output_size'])
+        self.scoring = nn.Linear(config['state_hsize'] + config['state_hsize'], config['output_size'])
 
         self.logistic = nn.Sigmoid()
 
@@ -113,9 +114,9 @@ class ESRNN(nn.Module):
         window_input = torch.cat([i.unsqueeze(0) for i in window_input_list], dim=0)
         window_output = torch.cat([i.unsqueeze(0) for i in window_output_list], dim=0)
 
-        network_output, _ = self.drnn1(window_input)
-        network_output = torch.cat((window_input, network_output), dim=2)
-        network_output, _ = self.drnn2(network_output)
+        network_output_1, _ = self.drnn1(window_input)
+        network_output_2, _ = self.drnn2(network_output_1)
+        network_output = torch.cat((network_output_1, network_output_2), dim=2)
 
         if add_nl_layer:
             network_output = self.nl_layer(network_output)
