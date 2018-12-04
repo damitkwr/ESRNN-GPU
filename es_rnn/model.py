@@ -14,9 +14,6 @@ class ESRNN(nn.Module):
         init_seas_sms = []
         init_seasonalities = []
 
-        # NEED TO ENSURE THAT THE GRADIENTS ARE ACCRUEING, IF NOT NEED TO TRY CREATING THESE PARAMETERS AS VARIABLES
-        # ANOTHER THING TO LOOK AT IS RATHER THAN INDEXING NORMALLY TO USE INDEX_SELECT METHOD ON THE TENSOR
-        #             UPDATE 2018-11-30: PARAMETERS SHOWING IN MODEL PRINT (AREDD)
         for i in range(num_series):
             init_lev_sms.append(nn.Parameter(torch.Tensor([0.5]), requires_grad=True))
             init_seas_sms.append(nn.Parameter(torch.Tensor([0.5]), requires_grad=True))
@@ -39,7 +36,7 @@ class ESRNN(nn.Module):
                           dilations=self.config['dilations'][0],
                           cell_type='LSTM')
 
-        self.drnn2 = DRNN(self.config['input_size'] + self.config['num_of_categories'] + self.config['state_hsize'],
+        self.drnn2 = DRNN(self.config['state_hsize'],
                           self.config['state_hsize'],
                           n_layers=len(self.config['dilations'][1]),
                           dilations=self.config['dilations'][1],
