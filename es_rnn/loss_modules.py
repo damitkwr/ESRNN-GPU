@@ -19,18 +19,20 @@ import torch.nn as nn
 
 class PinballLoss(nn.Module):
 
-    def __init__(self, training_tau, output_size):
+    def __init__(self, training_tau, output_size, device):
         super(PinballLoss, self).__init__()
         self.training_tau = training_tau
         self.output_size = output_size
+        self.device = device
 
     def forward(self, predictions, actuals):
-        cond = torch.zeros_like(predictions).cuda()
-        loss = torch.sub(actuals, predictions).cuda()
+        cond = torch.zeros_like(predictions).to(self.device)
+        loss = torch.sub(actuals, predictions).to(self.device)
 
-        less_than = torch.mul(loss, torch.mul(torch.gt(loss, cond).type(torch.FloatTensor).cuda(), self.training_tau))
+        less_than = torch.mul(loss, torch.mul(torch.gt(loss, cond).type(torch.FloatTensor).to(self.device),
+                                              self.training_tau))
 
-        greater_than = torch.mul(loss, torch.mul(torch.lt(loss, cond).type(torch.FloatTensor).cuda(),
+        greater_than = torch.mul(loss, torch.mul(torch.lt(loss, cond).type(torch.FloatTensor).to(self.device),
                                                  (self.training_tau - 1)))
 
         final_loss = torch.add(less_than, greater_than)
@@ -65,19 +67,20 @@ class PinballLoss(nn.Module):
 # }
 
 
-def sMAPE(predictions, actuals, output_size):
+def non_sMAPE(predictions, actuals, output_size):
     sumf = 0
     for i in range(output_size):
         prediction = predictions[i]
         actual = actuals[i]
         sumf += abs(prediction - actual) / (abs(prediction) + abs(actual))
-
     return sumf / output_size * 200
 
 
-test1 = torch.rand(100)
-test2 = torch.rand(100)
-sMAPE(test1, test2, 100)
+def sMAPE(predictions, actuals, output_size):
+    predictions = predictions.float()
+    actuals = actuals.float()
+    sumf = torch.sum(torch.abs(predictions - actuals) / (torch.abs(predictions) + torch.abs(actuals)))
+    return sumf / output_size * 200
 
 
 ### wQuantLoss
@@ -142,31 +145,10 @@ def errorFunc(predictions, actuals, output_size, percentile):
 
 def main():
     # Test vectorized calculation
-    A = torch.randn(10, 10)
-    B = torch.randn(10, 10)
-
-    output_size = 10
-    training_tau = 0.1
-    loss = PinballLoss(training_tau, output_size)
-
-    vec_loss = loss(A, B)
-
-    cpu_A = A.detach().numpy()
-    cpu_B = B.detach().numpy()
-
-    losses = []
-    for i in range(output_size):
-        prediction = cpu_A[i]
-        actual = cpu_B[i]
-        if actual > prediction:
-            losses.append((actual - prediction) * training_tau)
-        else:
-            losses.append((actual - prediction) * (training_tau - 1))
-    loss = torch.Tensor(losses)
-    cpu_loss = torch.sum(loss) / output_size * 2
-
-    assert vec_loss == cpu_loss
-
+    test1 = torch.rand(100)
+    test2 = torch.rand(100)
+    cpu_loss = non_sMAPE(test1, test2, 100)
+    vec_loss = sMAPE(test1, test2, 100)
 
 if __name__ == '__main__':
     main()

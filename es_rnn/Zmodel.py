@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
-import copy
-from es_rnn.DRNN import DRNN
+from es_rnn.ZDRNN import DRNN
 
 
 class ESRNN(nn.Module):
@@ -34,14 +33,7 @@ class ESRNN(nn.Module):
 
         self.drnn1 = DRNN(self.config['input_size'] + self.config['num_of_categories'],
                           self.config['state_hsize'],
-                          n_layers=len(self.config['dilations'][0]),
-                          dilations=self.config['dilations'][0],
-                          cell_type='LSTM')
-
-        self.drnn2 = DRNN(self.config['input_size'] + self.config['num_of_categories'] + self.config['state_hsize'],
-                          self.config['state_hsize'],
-                          n_layers=len(self.config['dilations'][1]),
-                          dilations=self.config['dilations'][1],
+                          n_layers=4,
                           cell_type='LSTM')
 
     def forward(self, train, val, test, info_cat, idxs, add_nl_layer=False, testing=False):
@@ -89,9 +81,9 @@ class ESRNN(nn.Module):
             seasonalities_stacked = torch.cat((seasonalities_stacked, seasonalities_stacked[:, start_seasonality_ext:]),
                                               dim=1)
 
-        window_input_list = []
-        window_output_list = []
-        for i in range(self.config['input_size'] - 1, train.shape[1]):
+        window_input = []
+        window_output = []
+        for i in range(self.config['input_size'] - 1, train.shape[1] - self.config['output_size']):
             input_window_start = i + 1 - self.config['input_size']
             input_window_end = i + 1
 
@@ -99,39 +91,24 @@ class ESRNN(nn.Module):
                                                                                         input_window_start:input_window_end]
             train_deseas_norm_window_input = (train_deseas_window_input / levs_stacked[:, i].unsqueeze(1))
             train_deseas_norm_cat_window_input = torch.cat((train_deseas_norm_window_input, info_cat), dim=1)
-            window_input_list.append(train_deseas_norm_cat_window_input)
+            window_input.append(train_deseas_norm_cat_window_input)
 
             output_window_start = i + 1
             output_window_end = i + 1 + self.config['output_size']
 
-            if i < train.shape[1] - self.config['output_size']:
-                train_deseas_window_output = train[:, output_window_start:output_window_end] / \
-                                             seasonalities_stacked[:, output_window_start:output_window_end]
-                train_deseas_norm_window_output = (train_deseas_window_output / levs_stacked[:, i].unsqueeze(1))
-                window_output_list.append(train_deseas_norm_window_output)
+            train_deseas_window_output = train[:, output_window_start:output_window_end] / seasonalities_stacked[:,
+                                                                                           output_window_start:output_window_end]
+            train_deseas_norm_window_output = (train_deseas_window_output / levs_stacked[:, i].unsqueeze(1))
+            window_output.append(train_deseas_norm_window_output)
 
-        window_input = torch.cat([i.unsqueeze(0) for i in window_input_list], dim=0)
-        window_output = torch.cat([i.unsqueeze(0) for i in window_output_list], dim=0)
+        input_batch = torch.cat([i.unsqueeze(0) for i in window_input], dim=0)
+        output_batch = torch.cat([i.unsqueeze(0) for i in window_output], dim=0)
 
-        network_output, _ = self.drnn1(window_input)
-        network_output = torch.cat((window_input, network_output), dim=2)
-        network_output, _ = self.drnn2(network_output)
+        out, _ = self.drnn1(input_batch)
 
         if add_nl_layer:
-            network_output = self.nl_layer(network_output)
-            network_output = self.act(network_output)
-        network_output = self.scoring(network_output)
+            out = self.nl_layer(out)
+            out = self.act(out)
+        out = self.scoring(out)
 
-        # USE THE LAST VALUE OF THE NETWORK OUTPUT TO COMPUTE THE HOLDOUT PREDITIONS
-        hold_out_output_reseas = network_output[-1] * seasonalities_stacked[:, -self.config['output_size']:]
-        hold_out_output_renorm = hold_out_output_reseas * levs_stacked[:, -1].unsqueeze(1)
-
-        # WE KNOW THE DATA IS STRICTLY POSITIVE
-        hold_out_pred = hold_out_output_renorm * torch.gt(hold_out_output_renorm, 0).float()
-        hold_out_act = test if testing else val
-
-        network_pred = network_output[:-self.config['output_size']]
-        network_act = window_output
-
-        # RETURN JUST THE TRAINING INPUT RATHER THAN THE ENTIRE SET BECAUSE THE HOLDOUT IS BEING GENERATED WITH THE REST
-        return network_pred, network_act, hold_out_pred, hold_out_act
+        return out, output_batch
