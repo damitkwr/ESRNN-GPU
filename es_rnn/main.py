@@ -13,7 +13,7 @@ print('loading data')
 info = pd.read_csv('../data/info.csv')
 
 if config['prod']:
-    train_path = '../data/Train/%s-train.csv'
+    train_path = '../data/Train/%s-train.csv' % config['variable']
     test_path = '../data/Test/%s-test.csv' % config['variable']
 
 train, val, test = create_datasets(train_path, test_path, config['output_size'], config['chop_val'])
