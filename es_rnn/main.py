@@ -7,31 +7,21 @@ from es_rnn.model import ESRNN
 import time
 
 print('loading config')
-q_config = get_config()
+config = get_config('Monthly')
 
 print('loading data')
 info = pd.read_csv('../data/info.csv')
 
-if q_config['prod']:
-    train_path = '../data/Train/Quarterly-train.csv'
-    test_path = '../data/Test/Quarterly-test.csv'
-else:
-    train_path = '../data/Train/Quarterly-train-small.csv'
-    test_path = '../data/Test/Quarterly-test-small.csv'
+if config['prod']:
+    train_path = '../data/Train/%s-train.csv'
+    test_path = '../data/Test/%s-test.csv' % config['variable']
 
-train, val, test = create_datasets(train_path, test_path, q_config['output_size'], q_config['chop_val'])
+train, val, test = create_datasets(train_path, test_path, config['output_size'], config['chop_val'])
 
-dataset = SeriesDataset(train, val, test, info, q_config['variable'], q_config['device'])
-dataloader = DataLoader(dataset, batch_size=q_config['batch_size'], shuffle=True)
+dataset = SeriesDataset(train, val, test, info, config['variable'], config['device'])
+dataloader = DataLoader(dataset, batch_size=config['batch_size'], shuffle=True)
 
 run_id = str(int(time.time()))
-model = ESRNN(num_series=len(dataset), config=q_config)
-tr = ESRNNTrainer(model, dataloader, run_id, q_config)
+model = ESRNN(num_series=len(dataset), config=config)
+tr = ESRNNTrainer(model, dataloader, run_id, config)
 tr.train()
-
-# print('initializing model and train')
-# run_id = str(int(time.time()))
-# model = ESRNN(num_series=len(dataset), config=q_config)
-# tr = ESRNNTrainer(model, dataloader, run_id, q_config)
-# train_batch, val_batch, test_batch, info_cat_batch, idxs_batch = iter(dataloader).next()
-# model.forward(train_batch, val_batch, test_batch, info_cat_batch, idxs_batch, testing=True)

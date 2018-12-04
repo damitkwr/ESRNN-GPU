@@ -52,7 +52,6 @@ class ESRNNTrainer(nn.Module):
 
             self.log_values(info)
 
-
     def train_batch(self, train, val, test, info_cat, idx):
         self.optimizer.zero_grad()
         network_pred, network_act, hold_out_pred, hold_out_act = self.model(train, val, test, info_cat, idx)
