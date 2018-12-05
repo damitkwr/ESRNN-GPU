@@ -69,7 +69,7 @@ class ESRNNTrainer(nn.Module):
             'batch_size'])
 
         loss = self.criterion(network_pred, network_act)
-        loss = loss + loss_mean_sq_log_diff_level * self.config['level_variability_penalty']
+        # loss = loss + loss_mean_sq_log_diff_level * self.config['level_variability_penalty']
         loss.backward()
         nn.utils.clip_grad_value_(self.model.parameters(), self.config['gradient_clipping'])
         self.optimizer.step()
