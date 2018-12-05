@@ -43,7 +43,7 @@ class SeriesDataset(Dataset):
 
     def __init__(self, dataTrain, dataVal, dataTest, info, variable, device):
         self.dataInfoCatOHE = pd.get_dummies(info[info['SP'] == variable]['category'])
-        self.dataInfoCatHeaders = self.dataInfoCatOHE.columns
+        self.dataInfoCatHeaders = np.array([i for i in self.dataInfoCatOHE.columns.values])
         self.dataInfoCat = torch.from_numpy(self.dataInfoCatOHE.values).float()
         self.dataTrain = [torch.tensor(i) for i in dataTrain]
         self.dataVal = [torch.tensor(i) for i in dataVal]

@@ -22,6 +22,7 @@ def get_config(interval):
         'lr_tolerance_multip': 1.005,
         'min_epochs_before_changing_lrate': 2,
         'print_train_batch_every': 5,
+        'print_output_stats': 3,
         'lr_anneal_rate': 0.5,
         'lr_anneal_step': 5
     }

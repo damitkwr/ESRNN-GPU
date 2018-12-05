@@ -3,17 +3,19 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
-from es_rnn.loss_modules import PinballLoss, sMAPE
+from es_rnn.loss_modules import PinballLoss, sMAPE, np_sMAPE
 from utils.logger import Logger
 import pandas as pd
 
 
 class ESRNNTrainer(nn.Module):
-    def __init__(self, model, dataloader, run_id, config):
+    def __init__(self, model, dataloader, run_id, config, ohe_headers):
         super(ESRNNTrainer, self).__init__()
         self.model = model.to(config['device'])
+        self.grouped_results = None
         self.config = config
         self.dl = dataloader
+        self.ohe_headers = ohe_headers
         # self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config['learning_rate'], eps=config['eps'])
         self.optimizer = torch.optim.ASGD(self.model.parameters(), lr=config['learning_rate'])
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
@@ -32,7 +34,9 @@ class ESRNNTrainer(nn.Module):
             self.scheduler.step()
             epoch_loss = self.train()
             if epoch_loss < max_loss:
-                self.save(epoch_loss)
+                self.save()
+            if e % self.config['print_output_stats'] == 0:
+                self.output_training_stats()
 
     def train(self):
         self.model.train()
@@ -43,7 +47,7 @@ class ESRNNTrainer(nn.Module):
             loss, hold_out_smape = self.train_batch(train, val, test, info_cat, idx)
             epoch_loss += loss
             end = time.time()
-            self.log.log_scalar('Iteration time', end - start, batch_num + 1 * (e + 1))
+            self.log.log_scalar('Iteration time', end - start, batch_num + 1 * (self.epochs + 1))
         epoch_loss = epoch_loss / (batch_num + 1)
         self.epochs += 1
 
@@ -61,8 +65,8 @@ class ESRNNTrainer(nn.Module):
                                                                                                          test, info_cat,
                                                                                                          idx)
 
-        hold_out_smape = sMAPE(hold_out_pred.view(-1), hold_out_act.view(-1), self.config['output_size']) / self.config[
-            'batch_size']
+        hold_out_smape = sMAPE(hold_out_pred.view(-1), hold_out_act.view(-1), self.config['output_size'] * self.config[
+            'batch_size'])
 
         loss = self.criterion(network_pred, network_act)
         loss = loss + loss_mean_sq_log_diff_level * self.config['level_variability_penalty']
@@ -73,22 +77,34 @@ class ESRNNTrainer(nn.Module):
 
     def output_training_stats(self):
         self.model.eval()
-        overall_hold_out = []
+        acts = []
+        preds = []
+        info_cats = []
         for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
             _, _, hold_out_pred, hold_out_act, _ = self.model(train, val, test, info_cat, idx)
 
-            overall_hold_out.append(np.concatenate((info_cat.cpu().detach().numpy(),
-                                                    hold_out_act.cpu().detach().numpy(),
-                                                    hold_out_pred.cpu().detach().numpy()), axis=1))
-        overall_hold_out_df = pd.DataFrame(np.concatenate(overall_hold_out, axis=0))
+            acts.extend(hold_out_act.view(-1).cpu().detach().numpy())
+            preds.extend(hold_out_pred.view(-1).cpu().detach().numpy())
+            info_cats.append(info_cat.cpu().detach().numpy())
+        info_cat_overall = np.concatenate(info_cats, axis=0)
+        overall_hold_out_df = pd.DataFrame({'acts': acts, 'preds': preds})
+        cats = [val for val in self.ohe_headers[info_cat_overall.argmax(axis=1)] for _ in
+                range(self.config['output_size'])]
+        overall_hold_out_df['category'] = cats
+        self.grouped_results = overall_hold_out_df.groupby(['category']).apply(
+            lambda x: np_sMAPE(x.preds, x.acts, x.shape[0]))
 
-        print('test')
+        file_path = os.path.join('..', 'grouped_results', self.run_id, self.prod_str)
+        os.makedirs(file_path, exist_ok=True)
 
-    def save(self, loss, save_dir='.'):
+        print(self.grouped_results)
+        grouped_path = os.path.join(file_path, 'grouped_results-{}.pyt'.format(self.epochs))
+        self.grouped_results.to_csv(grouped_path)
+
+    def save(self, save_dir='..'):
         print('Loss decreased, saving model!')
         file_path = os.path.join(save_dir, 'models', self.run_id, self.prod_str)
-        model_path = os.path.join(save_dir, 'models', self.run_id, self.prod_str,
-                                  'model-{}-loss-{}.pyt'.format(self.epochs, loss))
+        model_path = os.path.join(file_path, 'model-{}.pyt'.format(self.epochs))
         os.makedirs(file_path, exist_ok=True)
         torch.save({'state_dict': self.model.state_dict()}, model_path)
 
