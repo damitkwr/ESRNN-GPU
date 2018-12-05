@@ -98,7 +98,7 @@ class ESRNNTrainer(nn.Module):
         os.makedirs(file_path, exist_ok=True)
 
         print(self.grouped_results)
-        grouped_path = os.path.join(file_path, 'grouped_results-{}.pyt'.format(self.epochs))
+        grouped_path = os.path.join(file_path, 'grouped_results-{}.csv'.format(self.epochs))
         self.grouped_results.to_csv(grouped_path)
 
     def save(self, save_dir='..'):
