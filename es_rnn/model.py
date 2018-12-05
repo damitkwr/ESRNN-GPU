@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import copy
 from es_rnn.DRNN import DRNN
 
 
@@ -24,24 +23,14 @@ class ESRNN(nn.Module):
         self.init_seas_sms = nn.ParameterList(init_seas_sms)
         self.init_seasonalities = nn.ParameterList(init_seasonalities)
 
-        self.nl_layer = nn.Linear(config['state_hsize'] + config['state_hsize'],
-                                  config['state_hsize'] + config['state_hsize'])
+        self.nl_layer = nn.Linear(config['state_hsize'],
+                                  config['state_hsize'])
         self.act = nn.Tanh()
-        self.scoring = nn.Linear(config['state_hsize'] + config['state_hsize'], config['output_size'])
+        self.scoring = nn.Linear(config['state_hsize'], config['output_size'])
 
         self.logistic = nn.Sigmoid()
 
-        self.drnn1 = DRNN(self.config['input_size'] + self.config['num_of_categories'],
-                          self.config['state_hsize'],
-                          n_layers=len(self.config['dilations'][0]),
-                          dilations=self.config['dilations'][0],
-                          cell_type='LSTM')
-
-        self.drnn2 = DRNN(self.config['state_hsize'],
-                          self.config['state_hsize'],
-                          n_layers=len(self.config['dilations'][1]),
-                          dilations=self.config['dilations'][1],
-                          cell_type='LSTM')
+        self.resid_drnn = ResidualDRNN(self.config)
 
     def forward(self, train, val, test, info_cat, idxs, testing=False):
         # GET THE PER SERIES PARAMETERS
@@ -78,6 +67,7 @@ class ESRNN(nn.Module):
         seasonalities_stacked = torch.stack(seasonalities).transpose(1, 0)
         levs_stacked = torch.stack(levs).transpose(1, 0)
 
+        loss_mean_sq_log_diff_level = 0
         if self.config['level_variability_penalty'] > 0:
             sq_log_diff = torch.stack(
                 [(log_diff_of_levels[i] - log_diff_of_levels[i - 1]) ** 2 for i in range(1, len(log_diff_of_levels))])
@@ -87,7 +77,7 @@ class ESRNN(nn.Module):
             start_seasonality_ext = seasonalities_stacked.shape[1] - self.config['seasonality']
             seasonalities_stacked = torch.cat((seasonalities_stacked, seasonalities_stacked[:, start_seasonality_ext:]),
                                               dim=1)
-            
+
         window_input_list = []
         window_output_list = []
         for i in range(self.config['input_size'] - 1, train.shape[1]):
@@ -112,9 +102,7 @@ class ESRNN(nn.Module):
         window_input = torch.cat([i.unsqueeze(0) for i in window_input_list], dim=0)
         window_output = torch.cat([i.unsqueeze(0) for i in window_output_list], dim=0)
 
-        network_output_1, _ = self.drnn1(window_input)
-        network_output_2, _ = self.drnn2(network_output_1)
-        network_output = torch.cat((network_output_1, network_output_2), dim=2)
+        network_output = self.resid_drnn(window_input)
 
         if self.add_nl_layer:
             network_output = self.nl_layer(network_output)
@@ -134,3 +122,36 @@ class ESRNN(nn.Module):
 
         # RETURN JUST THE TRAINING INPUT RATHER THAN THE ENTIRE SET BECAUSE THE HOLDOUT IS BEING GENERATED WITH THE REST
         return network_pred, network_act, hold_out_pred, hold_out_act, loss_mean_sq_log_diff_level
+
+
+class ResidualDRNN(nn.Module):
+    def __init__(self, config):
+        super(ResidualDRNN, self).__init__()
+        self.config = config
+
+        layers = []
+        for grp_num in range(len(self.config['dilations'])):
+
+            if grp_num == 0:
+                input_size = self.config['input_size'] + self.config['num_of_categories']
+            else:
+                input_size = self.config['state_hsize']
+
+            l = DRNN(input_size,
+                     self.config['state_hsize'],
+                     n_layers=len(self.config['dilations'][grp_num]),
+                     dilations=self.config['dilations'][grp_num],
+                     cell_type=self.config['rnn_cell_type'])
+
+            layers.append(l)
+
+        self.rnn_stack = nn.Sequential(*layers)
+
+    def forward(self, input_data):
+        for layer_num in range(len(self.rnn_stack)):
+            residual = input_data
+            out, _ = self.rnn_stack[layer_num](input_data)
+            if layer_num > 0:
+                out += residual
+            input_data = out
+        return out

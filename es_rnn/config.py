@@ -10,6 +10,7 @@ def get_config(interval):
         'percentile': 50,
         'training_percentile': 45,
         'add_nl_layer': True,
+        'rnn_cell_type': 'LSTM',
         'learning_rate': 1e-3,
         'learning_rates': ((10, 1e-4)),
         'num_of_train_epochs': 30,
