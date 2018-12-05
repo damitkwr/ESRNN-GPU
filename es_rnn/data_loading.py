@@ -27,15 +27,22 @@ def create_val_set(train, output_size):
     return np.array(val)
 
 
-def chop_series(list_series, chop_val):
-    return [i[-chop_val:] for i in list_series if len(i) >= chop_val]
+def chop_series(train, val, test, chop_val):
+    # CREATE MASK FOR VALUES TO BE CHOPPED
+    train_len_mask = [True if len(i) >= chop_val else False for i in train]
+    # FILTER OUT TEST AND VAL
+    val = [val[i] for i in range(len(val)) if train_len_mask[i]]
+    test = [test[i] for i in range(len(test)) if train_len_mask[i]]
+    # FILTER AND CHOP TRAIN
+    train = [train[i][-chop_val:] for i in range(len(train)) if train_len_mask[i]]
+    return train, val, test
 
 
 def create_datasets(train_file_location, test_file_location, output_size, chop_val):
     train = read_file(train_file_location)
     test = read_file(test_file_location)
-    vals = create_val_set(train, output_size)
-    train = chop_series(train, chop_val)
+    val = create_val_set(train, output_size)
+    train, val, test = chop_series(train, val, test, chop_val)
     return train, vals, test
 
 
