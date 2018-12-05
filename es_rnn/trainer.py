@@ -1,6 +1,7 @@
 import os
 import time
 import numpy as np
+import copy
 import torch
 import torch.nn as nn
 from es_rnn.loss_modules import PinballLoss, sMAPE, np_sMAPE
@@ -12,7 +13,6 @@ class ESRNNTrainer(nn.Module):
     def __init__(self, model, dataloader, run_id, config, ohe_headers):
         super(ESRNNTrainer, self).__init__()
         self.model = model.to(config['device'])
-        self.grouped_results = None
         self.config = config
         self.dl = dataloader
         self.ohe_headers = ohe_headers
@@ -35,8 +35,7 @@ class ESRNNTrainer(nn.Module):
             epoch_loss = self.train()
             if epoch_loss < max_loss:
                 self.save()
-            if e % self.config['print_output_stats'] == 0:
-                self.output_training_stats()
+            self.val()
 
     def train(self):
         self.model.train()
@@ -44,7 +43,7 @@ class ESRNNTrainer(nn.Module):
         for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
             start = time.time()
             print("Train_batch: %d" % (batch_num + 1))
-            loss, hold_out_smape = self.train_batch(train, val, test, info_cat, idx)
+            loss = self.train_batch(train, val, test, info_cat, idx)
             epoch_loss += loss
             end = time.time()
             self.log.log_scalar('Iteration time', end - start, batch_num + 1 * (self.epochs + 1))
@@ -52,55 +51,65 @@ class ESRNNTrainer(nn.Module):
         self.epochs += 1
 
         # LOG EPOCH LEVEL INFORMATION
-        print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f, Hold Out sMAPE: %.4f' % (
-            self.epochs, self.max_epochs, epoch_loss, hold_out_smape))
-        info = {'loss': epoch_loss, 'hold_out_smape': hold_out_smape}
+        print('[TRAIN]  Epoch [%d/%d]   Loss: %.4f' % (
+            self.epochs, self.max_epochs, epoch_loss))
+        info = {'loss': epoch_loss}
+
         self.log_values(info)
+        self.log_hists()
 
         return epoch_loss
 
     def train_batch(self, train, val, test, info_cat, idx):
         self.optimizer.zero_grad()
-        network_pred, network_act, hold_out_pred, hold_out_act, loss_mean_sq_log_diff_level = self.model(train, val,
-                                                                                                         test, info_cat,
-                                                                                                         idx)
-
-        hold_out_smape = sMAPE(hold_out_pred.view(-1), hold_out_act.view(-1), self.config['output_size'] * self.config[
-            'batch_size'])
+        network_pred, network_act, _, _, loss_mean_sq_log_diff_level = self.model(train, val,
+                                                                                  test, info_cat,
+                                                                                  idx)
 
         loss = self.criterion(network_pred, network_act)
-        # THIS IS INCORRECT BECAUSE IT WILL PENALIZE THE VALIDATION/TEST LEVEL DIFFERENCES IN
-        # loss = loss + loss_mean_sq_log_diff_level * self.config['level_variability_penalty']
         loss.backward()
         nn.utils.clip_grad_value_(self.model.parameters(), self.config['gradient_clipping'])
         self.optimizer.step()
-        return float(loss), float(hold_out_smape)
+        return float(loss)
 
-    def output_training_stats(self):
+    def val(self):
         self.model.eval()
         acts = []
         preds = []
         info_cats = []
+
+        hold_out_loss = 0
         for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
             _, _, hold_out_pred, hold_out_act, _ = self.model(train, val, test, info_cat, idx)
-
+            hold_out_loss += self.criterion(hold_out_pred.float(), hold_out_act.float())
             acts.extend(hold_out_act.view(-1).cpu().detach().numpy())
             preds.extend(hold_out_pred.view(-1).cpu().detach().numpy())
             info_cats.append(info_cat.cpu().detach().numpy())
+
         info_cat_overall = np.concatenate(info_cats, axis=0)
-        overall_hold_out_df = pd.DataFrame({'acts': acts, 'preds': preds})
+        _hold_out_df = pd.DataFrame({'acts': acts, 'preds': preds})
         cats = [val for val in self.ohe_headers[info_cat_overall.argmax(axis=1)] for _ in
                 range(self.config['output_size'])]
-        overall_hold_out_df['category'] = cats
-        self.grouped_results = overall_hold_out_df.groupby(['category']).apply(
+        _hold_out_df['category'] = cats
+
+        overall_hold_out_df = copy.copy(_hold_out_df)
+        overall_hold_out_df['category'] = ['Overall' for _ in cats]
+
+        overall_hold_out_df = pd.concat((_hold_out_df, overall_hold_out_df))
+        grouped_results = overall_hold_out_df.groupby(['category']).apply(
             lambda x: np_sMAPE(x.preds, x.acts, x.shape[0]))
+
+        results = grouped_results.to_dict()
+        results['hold_out_loss'] = float(hold_out_loss)
+
+        self.log_values(results)
 
         file_path = os.path.join('..', 'grouped_results', self.run_id, self.prod_str)
         os.makedirs(file_path, exist_ok=True)
 
-        print(self.grouped_results)
+        print(grouped_results)
         grouped_path = os.path.join(file_path, 'grouped_results-{}.csv'.format(self.epochs))
-        self.grouped_results.to_csv(grouped_path)
+        grouped_results.to_csv(grouped_path)
 
     def save(self, save_dir='..'):
         print('Loss decreased, saving model!')
@@ -115,6 +124,7 @@ class ESRNNTrainer(nn.Module):
         for tag, value in info.items():
             self.log.log_scalar(tag, value, self.epochs + 1)
 
+    def log_hists(self):
         # HISTS
         batch_params = dict()
         for tag, value in self.model.named_parameters():
