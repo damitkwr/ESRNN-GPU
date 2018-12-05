@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 
 # Expression pinBallLoss(const Expression& out_ex, const Expression& actuals_ex) {//used by Dynet, learning loss function
 #   vector<Expression> losses;
@@ -76,11 +77,17 @@ def non_sMAPE(predictions, actuals, output_size):
     return sumf / output_size * 200
 
 
-def sMAPE(predictions, actuals, output_size):
+def sMAPE(predictions, actuals, N):
     predictions = predictions.float()
     actuals = actuals.float()
     sumf = torch.sum(torch.abs(predictions - actuals) / (torch.abs(predictions) + torch.abs(actuals)))
-    return sumf / output_size * 200
+    return ((2 * sumf) / N) * 100
+
+
+def np_sMAPE(predictions, actuals, N):
+    predictions = torch.from_numpy(np.array(predictions))
+    actuals = torch.from_numpy(np.array(actuals))
+    return float(sMAPE(predictions, actuals, N))
 
 
 ### wQuantLoss
