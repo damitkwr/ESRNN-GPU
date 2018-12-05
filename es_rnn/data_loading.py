@@ -43,7 +43,7 @@ def create_datasets(train_file_location, test_file_location, output_size, chop_v
     test = read_file(test_file_location)
     val = create_val_set(train, output_size)
     train, val, test = chop_series(train, val, test, chop_val)
-    return train, vals, test
+    return train, val, test
 
 
 class SeriesDataset(Dataset):
