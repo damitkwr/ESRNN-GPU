@@ -102,27 +102,32 @@ class ESRNN(nn.Module):
         window_input = torch.cat([i.unsqueeze(0) for i in window_input_list], dim=0)
         window_output = torch.cat([i.unsqueeze(0) for i in window_output_list], dim=0)
 
-        network_output = self.resid_drnn(window_input)
+        self.train()
+        network_pred = self.series_forward(window_input[:-self.config['output_size']])
+        network_act = window_output
 
-        if self.add_nl_layer:
-            network_output = self.nl_layer(network_output)
-            network_output = self.act(network_output)
-        network_output = self.scoring(network_output)
+        self.eval()
+        network_output_non_train = self.series_forward(window_input)
 
         # USE THE LAST VALUE OF THE NETWORK OUTPUT TO COMPUTE THE HOLDOUT PREDICTIONS
-        hold_out_output_reseas = network_output[-1] * seasonalities_stacked[:, -self.config['output_size']:]
+        hold_out_output_reseas = network_output_non_train[-1] * seasonalities_stacked[:, -self.config['output_size']:]
         hold_out_output_renorm = hold_out_output_reseas * levs_stacked[:, -1].unsqueeze(1)
 
         # WE KNOW THE DATA IS STRICTLY POSITIVE
         hold_out_pred = hold_out_output_renorm * torch.gt(hold_out_output_renorm, 0).float()
         hold_out_act = test if testing else val
 
-        network_pred = network_output[:-self.config['output_size']]
-        network_act = window_output
-
+        self.train()
         # RETURN JUST THE TRAINING INPUT RATHER THAN THE ENTIRE SET BECAUSE THE HOLDOUT IS BEING GENERATED WITH THE REST
         return network_pred, network_act, hold_out_pred, hold_out_act, loss_mean_sq_log_diff_level
 
+    def series_forward(self, data):
+        data = self.resid_drnn(data)
+        if self.add_nl_layer:
+            data = self.nl_layer(data)
+            data = self.act(data)
+        data = self.scoring(data)
+        return data
 
 class ResidualDRNN(nn.Module):
     def __init__(self, config):
