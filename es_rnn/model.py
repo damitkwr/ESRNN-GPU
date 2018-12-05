@@ -129,6 +129,7 @@ class ESRNN(nn.Module):
         data = self.scoring(data)
         return data
 
+
 class ResidualDRNN(nn.Module):
     def __init__(self, config):
         super(ResidualDRNN, self).__init__()
