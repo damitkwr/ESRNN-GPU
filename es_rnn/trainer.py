@@ -21,7 +21,8 @@ class ESRNNTrainer(nn.Module):
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
                                                          step_size=config['lr_anneal_step'],
                                                          gamma=config['lr_anneal_rate'])
-        self.criterion = PinballLoss(self.config['training_tau'], self.config['output_size'], self.config['device'])
+        self.criterion = PinballLoss(self.config['training_tau'],
+                                     self.config['output_size'] * self.config['batch_size'], self.config['device'])
         self.epochs = 0
         self.max_epochs = config['num_of_train_epochs']
         self.run_id = str(run_id)
@@ -88,8 +89,10 @@ class ESRNNTrainer(nn.Module):
 
             hold_out_loss = 0
             for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
-                _, _, hold_out_pred, hold_out_act, _ = self.model(train, val, test, info_cat, idx)
-                hold_out_loss += self.criterion(hold_out_pred.float(), hold_out_act.float())
+                _, _, (hold_out_pred, network_output_non_train), \
+                (hold_out_act, hold_out_act_deseas_norm), _ = self.model(train, val, test, info_cat, idx)
+                hold_out_loss += self.criterion(network_output_non_train.unsqueeze(0).float(),
+                                                hold_out_act_deseas_norm.unsqueeze(0).float())
                 acts.extend(hold_out_act.view(-1).cpu().detach().numpy())
                 preds.extend(hold_out_pred.view(-1).cpu().detach().numpy())
                 info_cats.append(info_cat.cpu().detach().numpy())
@@ -116,7 +119,7 @@ class ESRNNTrainer(nn.Module):
             file_path = os.path.join('..', 'grouped_results', self.run_id, self.prod_str)
             os.makedirs(file_path, exist_ok=True)
 
-            print(grouped_results)
+            print(results)
             grouped_path = os.path.join(file_path, 'grouped_results-{}.csv'.format(self.epochs))
             grouped_results.to_csv(grouped_path)
             self.csv_save_path = file_path

@@ -7,7 +7,7 @@ from es_rnn.model import ESRNN
 import time
 
 print('loading config')
-config = get_config('Monthly')
+config = get_config('Quarterly')
 
 print('loading data')
 info = pd.read_csv('../data/info.csv')

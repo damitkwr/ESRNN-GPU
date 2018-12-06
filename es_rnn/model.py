@@ -113,13 +113,19 @@ class ESRNN(nn.Module):
         hold_out_output_reseas = network_output_non_train[-1] * seasonalities_stacked[:, -self.config['output_size']:]
         hold_out_output_renorm = hold_out_output_reseas * levs_stacked[:, -1].unsqueeze(1)
 
-        # WE KNOW THE DATA IS STRICTLY POSITIVE
         hold_out_pred = hold_out_output_renorm * torch.gt(hold_out_output_renorm, 0).float()
         hold_out_act = test if testing else val
 
+        hold_out_act_deseas = hold_out_act.float() / seasonalities_stacked[:, -self.config['output_size']:]
+        hold_out_act_deseas_norm = hold_out_act_deseas / levs_stacked[:, -1].unsqueeze(1)
+
         self.train()
         # RETURN JUST THE TRAINING INPUT RATHER THAN THE ENTIRE SET BECAUSE THE HOLDOUT IS BEING GENERATED WITH THE REST
-        return network_pred, network_act, hold_out_pred, hold_out_act, loss_mean_sq_log_diff_level
+        return network_pred, \
+               network_act, \
+               (hold_out_pred, network_output_non_train), \
+               (hold_out_act, hold_out_act_deseas_norm), \
+               loss_mean_sq_log_diff_level
 
     def series_forward(self, data):
         data = self.resid_drnn(data)
