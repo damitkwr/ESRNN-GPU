@@ -5,7 +5,7 @@ import torch
 
 def get_config(interval):
     config = {
-        'prod': False,
+        'prod': True,
         'device': ("cuda" if torch.cuda.is_available() else "cpu"),
         'percentile': 50,
         'training_percentile': 45,
@@ -15,7 +15,7 @@ def get_config(interval):
         'learning_rates': ((10, 1e-4)),
         'num_of_train_epochs': 30,
         'num_of_categories': 6,  # in data provided
-        'batch_size': 128,
+        'batch_size': 2048,
         'gradient_clipping': 20,
         'c_state_penalty': 0,
         'min_learning_rate': 0.0001,

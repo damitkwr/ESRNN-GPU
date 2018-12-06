@@ -79,43 +79,44 @@ class ESRNNTrainer(nn.Module):
 
     def val(self):
         self.model.eval()
-        acts = []
-        preds = []
-        info_cats = []
+        with torch.no_grad():
+            acts = []
+            preds = []
+            info_cats = []
 
-        hold_out_loss = 0
-        for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
-            _, _, hold_out_pred, hold_out_act, _ = self.model(train, val, test, info_cat, idx)
-            hold_out_loss += self.criterion(hold_out_pred.float(), hold_out_act.float())
-            acts.extend(hold_out_act.view(-1).cpu().detach().numpy())
-            preds.extend(hold_out_pred.view(-1).cpu().detach().numpy())
-            info_cats.append(info_cat.cpu().detach().numpy())
-        hold_out_loss = hold_out_loss / (batch_num + 1)
+            hold_out_loss = 0
+            for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
+                _, _, hold_out_pred, hold_out_act, _ = self.model(train, val, test, info_cat, idx)
+                hold_out_loss += self.criterion(hold_out_pred.float(), hold_out_act.float())
+                acts.extend(hold_out_act.view(-1).cpu().detach().numpy())
+                preds.extend(hold_out_pred.view(-1).cpu().detach().numpy())
+                info_cats.append(info_cat.cpu().detach().numpy())
+            hold_out_loss = hold_out_loss / (batch_num + 1)
 
-        info_cat_overall = np.concatenate(info_cats, axis=0)
-        _hold_out_df = pd.DataFrame({'acts': acts, 'preds': preds})
-        cats = [val for val in self.ohe_headers[info_cat_overall.argmax(axis=1)] for _ in
-                range(self.config['output_size'])]
-        _hold_out_df['category'] = cats
+            info_cat_overall = np.concatenate(info_cats, axis=0)
+            _hold_out_df = pd.DataFrame({'acts': acts, 'preds': preds})
+            cats = [val for val in self.ohe_headers[info_cat_overall.argmax(axis=1)] for _ in
+                    range(self.config['output_size'])]
+            _hold_out_df['category'] = cats
 
-        overall_hold_out_df = copy.copy(_hold_out_df)
-        overall_hold_out_df['category'] = ['Overall' for _ in cats]
+            overall_hold_out_df = copy.copy(_hold_out_df)
+            overall_hold_out_df['category'] = ['Overall' for _ in cats]
 
-        overall_hold_out_df = pd.concat((_hold_out_df, overall_hold_out_df))
-        grouped_results = overall_hold_out_df.groupby(['category']).apply(
-            lambda x: np_sMAPE(x.preds, x.acts, x.shape[0]))
+            overall_hold_out_df = pd.concat((_hold_out_df, overall_hold_out_df))
+            grouped_results = overall_hold_out_df.groupby(['category']).apply(
+                lambda x: np_sMAPE(x.preds, x.acts, x.shape[0]))
 
-        results = grouped_results.to_dict()
-        results['hold_out_loss'] = float(hold_out_loss)
+            results = grouped_results.to_dict()
+            results['hold_out_loss'] = float(hold_out_loss.detach().cpu())
 
-        self.log_values(results)
+            self.log_values(results)
 
-        file_path = os.path.join('..', 'grouped_results', self.run_id, self.prod_str)
-        os.makedirs(file_path, exist_ok=True)
+            file_path = os.path.join('..', 'grouped_results', self.run_id, self.prod_str)
+            os.makedirs(file_path, exist_ok=True)
 
-        print(grouped_results)
-        grouped_path = os.path.join(file_path, 'grouped_results-{}.csv'.format(self.epochs))
-        grouped_results.to_csv(grouped_path)
+            print(grouped_results)
+            grouped_path = os.path.join(file_path, 'grouped_results-{}.csv'.format(self.epochs))
+            grouped_results.to_csv(grouped_path)
 
         return hold_out_loss
 
