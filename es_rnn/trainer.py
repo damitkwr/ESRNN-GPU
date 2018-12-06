@@ -121,7 +121,7 @@ class ESRNNTrainer(nn.Module):
             grouped_results.to_csv(grouped_path)
             self.csv_save_path = file_path
 
-        return hold_out_loss
+        return hold_out_loss.detach().cpu().item()
 
     def save(self, save_dir='..'):
         print('Loss decreased, saving model!')
