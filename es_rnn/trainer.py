@@ -27,6 +27,7 @@ class ESRNNTrainer(nn.Module):
         self.run_id = str(run_id)
         self.prod_str = 'prod' if config['prod'] else 'dev'
         self.log = Logger("../logs/train%s%s%s" % (self.config['variable'], self.prod_str, self.run_id))
+        self.csv_save_path = None
 
     def train_epochs(self):
         max_loss = 1e8
@@ -37,9 +38,10 @@ class ESRNNTrainer(nn.Module):
                 self.save()
             epoch_val_loss = self.val()
             if e == 0:
-                with open('validation_losses.csv', 'w') as f:
+                file_path = os.path.join(self.csv_save_path, 'validation_losses.csv')
+                with open(file_path, 'w') as f:
                     f.write('epoch,training_loss,validation_loss\n')
-            with open('validation_losses.csv', 'a') as f:
+            with open(file_path, 'a') as f:
                 f.write(','.join([str(e), str(epoch_loss), str(epoch_val_loss)]) + '\n')
 
     def train(self):
@@ -117,6 +119,7 @@ class ESRNNTrainer(nn.Module):
             print(grouped_results)
             grouped_path = os.path.join(file_path, 'grouped_results-{}.csv'.format(self.epochs))
             grouped_results.to_csv(grouped_path)
+            self.csv_save_path = file_path
 
         return hold_out_loss
 
