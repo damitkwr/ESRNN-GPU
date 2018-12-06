@@ -19,7 +19,7 @@ test_path = '../data/Test/%s-test%s.csv' % (config['variable'], small)
 
 train, val, test = create_datasets(train_path, test_path, config['output_size'], config['chop_val'])
 
-dataset = SeriesDataset(train, val, test, info, config['variable'], config['device'])
+dataset = SeriesDataset(train, val, test, info, config['variable'], config['chop_val'], config['device'])
 dataloader = DataLoader(dataset, batch_size=config['batch_size'], shuffle=True)
 
 run_id = str(int(time.time()))
