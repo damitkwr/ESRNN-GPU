@@ -35,7 +35,12 @@ class ESRNNTrainer(nn.Module):
             epoch_loss = self.train()
             if epoch_loss < max_loss:
                 self.save()
-            self.val()
+            epoch_val_loss = self.val()
+            if e == 0:
+                with open('validation_losses.csv', 'w') as f:
+                    f.write('epoch,training_loss,validation_loss\n')
+            with open('validation_losses.csv', 'a') as f:
+                f.write(','.join([str(e), str(epoch_loss), str(epoch_val_loss)]) + '\n')
 
     def train(self):
         self.model.train()
@@ -85,6 +90,7 @@ class ESRNNTrainer(nn.Module):
             acts.extend(hold_out_act.view(-1).cpu().detach().numpy())
             preds.extend(hold_out_pred.view(-1).cpu().detach().numpy())
             info_cats.append(info_cat.cpu().detach().numpy())
+        hold_out_loss = hold_out_loss / (batch_num + 1)
 
         info_cat_overall = np.concatenate(info_cats, axis=0)
         _hold_out_df = pd.DataFrame({'acts': acts, 'preds': preds})
@@ -110,6 +116,8 @@ class ESRNNTrainer(nn.Module):
         print(grouped_results)
         grouped_path = os.path.join(file_path, 'grouped_results-{}.csv'.format(self.epochs))
         grouped_results.to_csv(grouped_path)
+
+        return hold_out_loss
 
     def save(self, save_dir='..'):
         print('Loss decreased, saving model!')
