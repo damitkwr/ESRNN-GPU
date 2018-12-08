@@ -12,12 +12,10 @@ config = get_config('Quarterly')
 print('loading data')
 info = pd.read_csv('../data/info.csv')
 
-small = "" if config['prod'] else "-small"
+train_path = '../data/Train/%s-train.csv' % (config['variable'])
+test_path = '../data/Test/%s-test.csv' % (config['variable'])
 
-train_path = '../data/Train/%s-train%s.csv' % (config['variable'], small)
-test_path = '../data/Test/%s-test%s.csv' % (config['variable'], small)
-
-train, val, test = create_datasets(train_path, test_path, config['output_size'], config['chop_val'])
+train, val, test = create_datasets(train_path, test_path, config['output_size'])
 
 dataset = SeriesDataset(train, val, test, info, config['variable'], config['chop_val'], config['device'])
 dataloader = DataLoader(dataset, batch_size=config['batch_size'], shuffle=True)

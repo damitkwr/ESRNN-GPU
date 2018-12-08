@@ -5,7 +5,7 @@ import torch
 
 def get_config(interval):
     config = {
-        'prod': True,
+        'prod': False,
         'device': ("cuda" if torch.cuda.is_available() else "cpu"),
         'percentile': 50,
         'training_percentile': 45,
@@ -49,6 +49,18 @@ def get_config(interval):
             'seasonality': 12,
             'input_size': 12,
             'output_size': 18,
+            'level_variability_penalty': 50
+        })
+    elif interval == 'Daily':
+        config.update({
+            #     RUNTIME PARAMETERS
+            'chop_val': 200,
+            'variable': "Monthly",
+            'dilations': ((1, 3), (7, 14)),
+            'state_hsize': 50,
+            'seasonality': 7,
+            'input_size': 7,
+            'output_size': 14,
             'level_variability_penalty': 50
         })
     else:

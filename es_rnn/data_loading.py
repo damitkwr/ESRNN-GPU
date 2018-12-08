@@ -35,7 +35,7 @@ def chop_series(train, chop_val):
     return train, train_len_mask
 
 
-def create_datasets(train_file_location, test_file_location, output_size, chop_val):
+def create_datasets(train_file_location, test_file_location, output_size):
     train = read_file(train_file_location)
     test = read_file(test_file_location)
     val = create_val_set(train, output_size)
