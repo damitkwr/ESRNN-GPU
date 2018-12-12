@@ -16,8 +16,8 @@ class ESRNNTrainer(nn.Module):
         self.config = config
         self.dl = dataloader
         self.ohe_headers = ohe_headers
-        # self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config['learning_rate'], eps=config['eps'])
-        self.optimizer = torch.optim.ASGD(self.model.parameters(), lr=config['learning_rate'])
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config['learning_rate'])
+        # self.optimizer = torch.optim.ASGD(self.model.parameters(), lr=config['learning_rate'])
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
                                                          step_size=config['lr_anneal_step'],
                                                          gamma=config['lr_anneal_rate'])
@@ -32,6 +32,7 @@ class ESRNNTrainer(nn.Module):
 
     def train_epochs(self):
         max_loss = 1e8
+        start_time = time.time()
         for e in range(self.max_epochs):
             self.scheduler.step()
             epoch_loss = self.train()
@@ -44,6 +45,7 @@ class ESRNNTrainer(nn.Module):
                     f.write('epoch,training_loss,validation_loss\n')
             with open(file_path, 'a') as f:
                 f.write(','.join([str(e), str(epoch_loss), str(epoch_val_loss)]) + '\n')
+        print('Total Training Mins: %5.2f' % ((time.time()-start_time)/60))
 
     def train(self):
         self.model.train()

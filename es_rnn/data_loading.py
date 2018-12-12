@@ -11,6 +11,7 @@ def read_file(file_location):
         data = file.read().split("\n")
 
     for i in range(1, len(data) - 1):
+    # for i in range(1, len(data)):
         row = data[i].replace('"', '').split(',')
         series.append(np.array([float(j) for j in row[1:] if j != ""]))
         ids.append(row[0])
