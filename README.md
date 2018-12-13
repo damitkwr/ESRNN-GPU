@@ -1,4 +1,4 @@
-# A PyTorch implementation of the ES-RNN Hybrid Model by Slawek et al (2018)
+# A PyTorch implementation of the ES-RNN Hybrid Model
 
 A GPU-enabled version of the [hybrid ES-RNN model](https://eng.uber.com/m4-forecasting-competition/) by Slawek et al that won the M4 time-series forecasting competition by a large margin.
 
