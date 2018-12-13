@@ -5,7 +5,7 @@
 #The c++ executables write to one (occasinally two, sorry :-), so in such case move files to one dir before continuing) directories. 
 #(One logical run of several instances of the same program will produce a number files, e.g. outputs with different ibig value) 
 #This script merges, averages values, and writes them down to the same directory - FOREC_DIR
-###############################################################################
+####x###########################################################################
 
 #directory that should include all *-train.csv files, as well as M4-info.csv
 DATA_DIR="F:/progs/data/M4DataSet/"
