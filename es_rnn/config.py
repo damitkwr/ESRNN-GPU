@@ -5,7 +5,7 @@ import torch
 
 def get_config(interval):
     config = {
-        'prod': True,
+        'prod': False,
         'device': ("cuda" if torch.cuda.is_available() else "cpu"),
         'percentile': 50,
         'training_percentile': 45,
