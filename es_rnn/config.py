@@ -86,6 +86,6 @@ def get_config(interval):
 
     if not config['prod']:
         config['batch_size'] = 10
-        config['num_of_train_epochs'] = 15
+        config['num_of_train_epochs'] = 3
 
     return config

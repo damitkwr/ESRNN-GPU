@@ -32,7 +32,34 @@ class ESRNN(nn.Module):
 
         self.resid_drnn = ResidualDRNN(self.config)
 
-    def forward(self, train, val, test, info_cat, idxs, testing=False):
+    def forward(self, data, data_val, info_cat, idxs, testing=False):
+        data = data.float()
+        seasonalities_stacked, levs_stacked = self.es(data, idxs)
+        window_input, window_output = self.rnn_windows(data, info_cat, seasonalities_stacked, levs_stacked)
+        if not testing:
+            network_pred = self.rnn_forward(window_input[:-self.config['output_size']])
+            network_act = window_output
+            return network_pred, network_act
+        else:
+            # NETWORK RAW OUTPUT
+            network_output_non_train = self.rnn_forward(window_input)
+
+            # USE THE LAST VALUE OF THE NETWORK OUTPUT TO COMPUTE THE HOLDOUT PREDICTIONS
+            hold_out_output_reseas = network_output_non_train[-1] * seasonalities_stacked[:,
+                                                                    -self.config['output_size']:]
+            hold_out_output_renorm = hold_out_output_reseas * levs_stacked[:, -1].unsqueeze(1)
+
+            # WOULD BE ACTUAL OUTPUT PREDICTIONS
+            hold_out_pred = hold_out_output_renorm * torch.gt(hold_out_output_renorm, 0).float()
+            hold_out_act = data_val
+
+            hold_out_act_deseas = hold_out_act.float() / seasonalities_stacked[:, -self.config['output_size']:]
+            hold_out_act_deseas_norm = hold_out_act_deseas / levs_stacked[:, -1].unsqueeze(1)
+
+            # WE HAVE BOTH THE ADJUSTED PREDICTIONS AND THE NON ADJUSTED PREDICTIONS
+            return (hold_out_pred, network_output_non_train), (hold_out_act, hold_out_act_deseas_norm)
+
+    def es(self, data, idxs):
         # GET THE PER SERIES PARAMETERS
         lev_sms = self.logistic(torch.stack([self.init_lev_sms[idx] for idx in idxs]).squeeze(1))
         seas_sms = self.logistic(torch.stack([self.init_seas_sms[idx] for idx in idxs]).squeeze(1))
@@ -44,47 +71,46 @@ class ESRNN(nn.Module):
             seasonalities.append(torch.exp(init_seasonalities[:, i]))
         seasonalities.append(torch.exp(init_seasonalities[:, 0]))
 
-        if testing:
-            train = torch.cat((train, val), dim=1)
-
-        train = train.float()
-
         levs = []
-        log_diff_of_levels = []
+        # log_diff_of_levels = []
 
-        levs.append(train[:, 0] / seasonalities[0])
-        for i in range(1, train.shape[1]):
+        levs.append(data[:, 0] / seasonalities[0])
+        for i in range(1, data.shape[1]):
             # CALCULATE LEVEL FOR CURRENT TIMESTEP TO NORMALIZE RNN
-            new_lev = lev_sms * (train[:, i] / seasonalities[i]) + (1 - lev_sms) * levs[i - 1]
+            new_lev = lev_sms * (data[:, i] / seasonalities[i]) + (1 - lev_sms) * levs[i - 1]
             levs.append(new_lev)
 
             # STORE DIFFERENCE TO PENALIZE LATER
-            log_diff_of_levels.append(torch.log(new_lev / levs[i - 1]))
+            # log_diff_of_levels.append(torch.log(new_lev / levs[i - 1]))
 
             # CALCULATE SEASONALITY TO DESEASONALIZE THE DATA FOR RNN
-            seasonalities.append(seas_sms * (train[:, i] / new_lev) + (1 - seas_sms) * seasonalities[i])
+            seasonalities.append(seas_sms * (data[:, i] / new_lev) + (1 - seas_sms) * seasonalities[i])
 
         seasonalities_stacked = torch.stack(seasonalities).transpose(1, 0)
         levs_stacked = torch.stack(levs).transpose(1, 0)
 
-        loss_mean_sq_log_diff_level = 0
-        if self.config['level_variability_penalty'] > 0:
-            sq_log_diff = torch.stack(
-                [(log_diff_of_levels[i] - log_diff_of_levels[i - 1]) ** 2 for i in range(1, len(log_diff_of_levels))])
-            loss_mean_sq_log_diff_level = torch.mean(sq_log_diff)
+        # loss_mean_sq_log_diff_level = 0
+        # if self.config['level_variability_penalty'] > 0:
+        #     sq_log_diff = torch.stack(
+        #         [(log_diff_of_levels[i] - log_diff_of_levels[i - 1]) ** 2 for i in range(1, len(log_diff_of_levels))])
+        #     loss_mean_sq_log_diff_level = torch.mean(sq_log_diff)
 
         if self.config['output_size'] > self.config['seasonality']:
             start_seasonality_ext = seasonalities_stacked.shape[1] - self.config['seasonality']
             seasonalities_stacked = torch.cat((seasonalities_stacked, seasonalities_stacked[:, start_seasonality_ext:]),
                                               dim=1)
 
+        return seasonalities_stacked, levs_stacked
+
+    def rnn_windows(self, data, info_cat, seasonalities_stacked, levs_stacked):
+
         window_input_list = []
         window_output_list = []
-        for i in range(self.config['input_size'] - 1, train.shape[1]):
+        for i in range(self.config['input_size'] - 1, data.shape[1]):
             input_window_start = i + 1 - self.config['input_size']
             input_window_end = i + 1
 
-            train_deseas_window_input = train[:, input_window_start:input_window_end] / seasonalities_stacked[:,
+            train_deseas_window_input = data[:, input_window_start:input_window_end] / seasonalities_stacked[:,
                                                                                         input_window_start:input_window_end]
             train_deseas_norm_window_input = (train_deseas_window_input / levs_stacked[:, i].unsqueeze(1))
             train_deseas_norm_cat_window_input = torch.cat((train_deseas_norm_window_input, info_cat), dim=1)
@@ -93,8 +119,8 @@ class ESRNN(nn.Module):
             output_window_start = i + 1
             output_window_end = i + 1 + self.config['output_size']
 
-            if i < train.shape[1] - self.config['output_size']:
-                train_deseas_window_output = train[:, output_window_start:output_window_end] / \
+            if i < data.shape[1] - self.config['output_size']:
+                train_deseas_window_output = data[:, output_window_start:output_window_end] / \
                                              seasonalities_stacked[:, output_window_start:output_window_end]
                 train_deseas_norm_window_output = (train_deseas_window_output / levs_stacked[:, i].unsqueeze(1))
                 window_output_list.append(train_deseas_norm_window_output)
@@ -102,32 +128,9 @@ class ESRNN(nn.Module):
         window_input = torch.cat([i.unsqueeze(0) for i in window_input_list], dim=0)
         window_output = torch.cat([i.unsqueeze(0) for i in window_output_list], dim=0)
 
-        self.train()
-        network_pred = self.series_forward(window_input[:-self.config['output_size']])
-        network_act = window_output
+        return window_input, window_output
 
-        self.eval()
-        network_output_non_train = self.series_forward(window_input)
-
-        # USE THE LAST VALUE OF THE NETWORK OUTPUT TO COMPUTE THE HOLDOUT PREDICTIONS
-        hold_out_output_reseas = network_output_non_train[-1] * seasonalities_stacked[:, -self.config['output_size']:]
-        hold_out_output_renorm = hold_out_output_reseas * levs_stacked[:, -1].unsqueeze(1)
-
-        hold_out_pred = hold_out_output_renorm * torch.gt(hold_out_output_renorm, 0).float()
-        hold_out_act = test if testing else val
-
-        hold_out_act_deseas = hold_out_act.float() / seasonalities_stacked[:, -self.config['output_size']:]
-        hold_out_act_deseas_norm = hold_out_act_deseas / levs_stacked[:, -1].unsqueeze(1)
-
-        self.train()
-        # RETURN JUST THE TRAINING INPUT RATHER THAN THE ENTIRE SET BECAUSE THE HOLDOUT IS BEING GENERATED WITH THE REST
-        return network_pred, \
-               network_act, \
-               (hold_out_pred, network_output_non_train), \
-               (hold_out_act, hold_out_act_deseas_norm), \
-               loss_mean_sq_log_diff_level
-
-    def series_forward(self, data):
+    def rnn_forward(self, data):
         data = self.resid_drnn(data)
         if self.add_nl_layer:
             data = self.nl_layer(data)
@@ -167,3 +170,5 @@ class ResidualDRNN(nn.Module):
                 out += residual
             input_data = out
         return out
+
+# validation

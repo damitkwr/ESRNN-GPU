@@ -70,11 +70,15 @@ class ESRNNTrainer(nn.Module):
 
         return epoch_loss
 
-    def train_batch(self, train, val, test, info_cat, idx):
+    def train_batch(self, train, val, test, info_cat, idx, testing=False):
         self.optimizer.zero_grad()
-        network_pred, network_act, _, _, loss_mean_sq_log_diff_level = self.model(train, val,
-                                                                                  test, info_cat,
-                                                                                  idx)
+        if testing:
+            data = torch.cat((train, val), dim=1)
+            data_val = test
+        else:
+            data = train
+            data_val = val
+        network_pred, network_act = self.model(data, data_val, info_cat, idx)
 
         loss = self.criterion(network_pred, network_act)
         loss.backward()
@@ -82,7 +86,7 @@ class ESRNNTrainer(nn.Module):
         self.optimizer.step()
         return float(loss)
 
-    def val(self):
+    def val(self, testing=False):
         self.model.eval()
         with torch.no_grad():
             acts = []
@@ -91,8 +95,16 @@ class ESRNNTrainer(nn.Module):
 
             hold_out_loss = 0
             for batch_num, (train, val, test, info_cat, idx) in enumerate(self.dl):
-                _, _, (hold_out_pred, network_output_non_train), \
-                (hold_out_act, hold_out_act_deseas_norm), _ = self.model(train, val, test, info_cat, idx)
+
+                if testing:
+                    data = torch.cat((train, val), dim=1)
+                    data_val = test
+                else:
+                    data = train
+                    data_val = val
+
+                (hold_out_pred, network_output_non_train), \
+                (hold_out_act, hold_out_act_deseas_norm) = self.model(data, data_val, info_cat, idx, testing=True)
                 hold_out_loss += self.criterion(network_output_non_train.unsqueeze(0).float(),
                                                 hold_out_act_deseas_norm.unsqueeze(0).float())
                 acts.extend(hold_out_act.view(-1).cpu().detach().numpy())
