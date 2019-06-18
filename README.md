@@ -39,10 +39,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you choose to use our implementation in your work please cite us as:
 
 ```
-@inproceedings{redd:2018,
-  author={Redd, Andrew and Khin, Kaung and Marini, Aldo},
-  title={Fast ES-RNN: A GPU Implementation of the ES-RNN Algorithm},
-  year={2018}
+@misc{ReddKhinMarini:esrnn,
+    title = {{Fast ES-RNN: A GPU Implementation of the ES-RNN Algorithm}},
+    year = {2018},
+    author = {Redd, Andrew and Khin, Kaung and Marini, Aldo},
+    month = {12},
+    url = {https://github.com/damitkwr/ESRNN-GPU}
 }
 ```
 
