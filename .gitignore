@@ -1,4 +1,6 @@
 # Original Slawek's files
 slawek_github/
 .idea/
-data/
+data/*.csv
+data/Test/*.csv
+data/Train/*.csv
