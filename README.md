@@ -8,6 +8,7 @@ A GPU-enabled version of the [hybrid ES-RNN model](https://eng.uber.com/m4-forec
 
 ```
 Python (3.5+)
+Tensorflow (1.12+ to 1.14)
 PyTorch (0.4.1)
 Zalando Research's Dilated RNN
 ```
