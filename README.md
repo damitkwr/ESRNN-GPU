@@ -1,6 +1,6 @@
 # Fast ES-RNN: A GPU Implementation of the ES-RNN Algorithm
 
-A GPU-enabled version of the [hybrid ES-RNN model](https://eng.uber.com/m4-forecasting-competition/) by Slawek et al that won the M4 time-series forecasting competition by a large margin. The details of our implementation and the results are discussed in detail on this [paper](https://www.dropbox.com/s/ivqoq7rl3jyxpmi/Redd-Khin-Marini-ESRNN.pdf?dl=0)
+A GPU-enabled version of the [hybrid ES-RNN model](https://eng.uber.com/m4-forecasting-competition/) by Slawek et al that won the M4 time-series forecasting competition by a large margin. The details of our implementation and the results are discussed in detail on this [paper](https://arxiv.org/abs/1907.03329)
 
 ## Getting Started
 
