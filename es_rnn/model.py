@@ -75,7 +75,8 @@ class ESRNN(nn.Module):
 
         if self.config['output_size'] > self.config['seasonality']:
             start_seasonality_ext = seasonalities_stacked.shape[1] - self.config['seasonality']
-            seasonalities_stacked = torch.cat((seasonalities_stacked, seasonalities_stacked[:, start_seasonality_ext:]),
+            end_seasonality_ext = start_seasonality_ext + self.config['output_size'] - self.config['seasonality']
+            seasonalities_stacked = torch.cat((seasonalities_stacked, seasonalities_stacked[:, start_seasonality_ext:end_seasonality_ext]),
                                               dim=1)
 
         window_input_list = []
